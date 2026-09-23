@@ -43,9 +43,10 @@ export default function ConfirmationDepot() {
   const depositedAt = data.depositedAt
 
   const domaineLabel = useMemo(() => {
+    if (data.domaineLabel) return data.domaineLabel
     const found = t.deposit.request.domaines.find((d) => d.value === domaineValue)
     return found?.label ?? domaineValue
-  }, [domaineValue, t.deposit.request.domaines])
+  }, [data.domaineLabel, domaineValue, t.deposit.request.domaines])
 
   const handleCopy = async () => {
     try {

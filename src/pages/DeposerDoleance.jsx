@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Header from '../components/Header'
@@ -17,8 +17,12 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { WILAYAS } from '../data/wilayas'
 import api from '../lib/api'
 
+// Limites alignées sur la base de données (voir migration "doleances") :
+// nom/prenom 60, email 120, objet 200. Le formulaire bloque lui-même les
+// valeurs trop longues, avec un message traduit, au lieu d'attendre le
+// message en anglais renvoyé par Laravel.
 const NAME_RE =
-  /^[\p{L}\p{M}][\p{L}\p{M}\s'\u2019-]{0,79}$/u
+  /^[\p{L}\p{M}][\p{L}\p{M}\s'\u2019-]{0,59}$/u
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^(0|\+213|00213)?[\s.-]?[5-7](?:[\s.-]?\d{2}){4}$/
 
@@ -33,6 +37,12 @@ const emptyForm = {
   domaine: '',
   objet: '',
   description: '',
+}
+
+const DOMAINE_SLUG_TO_SERVICE = {
+  sport: 'Sport',
+  jeunesse: 'Jeunesse',
+  rh: 'Ressources humaines',
 }
 
 /** Mappe les clés d'erreur Laravel vers les champs UI */
@@ -52,6 +62,17 @@ const API_FIELD_MAP = {
 function firstError(messages) {
   if (!messages) return ''
   return Array.isArray(messages) ? messages[0] ?? '' : String(messages)
+}
+
+/**
+ * FileDropzone peut transmettre soit un File natif, soit un objet
+ * qui l'enveloppe ({ file: File }). On récupère le File natif dans
+ * les deux cas ; sinon rien n'est envoyé.
+ */
+function toNativeFile(value) {
+  if (value instanceof File) return value
+  if (value?.file instanceof File) return value.file
+  return null
 }
 
 function validateField(name, value, errorsMap) {
@@ -100,18 +121,68 @@ export default function DeposerDoleance() {
     return allowed.includes(d) ? d : ''
   }, [searchParams])
 
-  const [form, setForm] = useState(() => ({
-    ...emptyForm,
-    domaine: initialDomaine,
-  }))
+  const [form, setForm] = useState(emptyForm)
   const [file, setFile] = useState(null)
   const [fileError, setFileError] = useState(null)
   const [errors, setErrors] = useState({})
   const [touched, setTouched] = useState({})
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [referentiels, setReferentiels] = useState({
+    services: [],
+    natures: [],
+    qualites: [],
+  })
+  const [referentielsLoading, setReferentielsLoading] = useState(true)
+  const [referentielsFailed, setReferentielsFailed] = useState(false)
+  const [submitError, setSubmitError] = useState('')
+
+  useEffect(() => {
+    let cancelled = false
+    setReferentielsLoading(true)
+    setReferentielsFailed(false)
+
+    api
+      .get('/referentiels')
+      .then((res) => {
+        if (cancelled) return
+        const data = res.data ?? {}
+        const services = data.services ?? []
+        const natures = data.natures ?? []
+        const qualites = data.qualites ?? []
+        setReferentiels({ services, natures, qualites })
+
+        if (initialDomaine) {
+          const expected = DOMAINE_SLUG_TO_SERVICE[initialDomaine]
+          const match = services.find(
+            (s) =>
+              String(s.nom_service ?? '')
+                .trim()
+                .toLowerCase() === expected.toLowerCase(),
+          )
+          if (match) {
+            setForm((prev) => ({
+              ...prev,
+              domaine: String(match.id_service),
+            }))
+          }
+        }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setReferentielsFailed(true)
+      })
+      .finally(() => {
+        if (!cancelled) setReferentielsLoading(false)
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [initialDomaine])
 
   const setValue = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }))
+    if (submitError) setSubmitError('')
     if (touched[name] || errors[name]) {
       setErrors((prev) => ({
         ...prev,
@@ -126,6 +197,14 @@ export default function DeposerDoleance() {
       ...prev,
       [name]: validateField(name, form[name], t.deposit.errors),
     }))
+  }
+
+  const focusFirstInvalid = () => {
+    requestAnimationFrame(() => {
+      const first = document.querySelector('[aria-invalid="true"]')
+      first?.focus()
+      first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    })
   }
 
   const validateAll = () => {
@@ -169,67 +248,68 @@ export default function DeposerDoleance() {
       }, {}),
     }))
 
-    requestAnimationFrame(() => {
-      const first = document.querySelector('[aria-invalid="true"]')
-      first?.focus()
-      first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    })
+    focusFirstInvalid()
   }
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (isSubmitting) return
+    if (isSubmitting || referentielsFailed) return
+    setSubmitError('')
     if (!validateAll()) {
-      requestAnimationFrame(() => {
-        const first = document.querySelector('[aria-invalid="true"]')
-        first?.focus()
-        first?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-      })
+      focusFirstInvalid()
       return
     }
 
-    const body = new FormData()
-    body.append('nom', form.nom.trim())
-    body.append('prenom', form.prenom.trim())
-    body.append('email', form.email.trim())
-    body.append('telephone', form.telephone.trim())
-    body.append('wilaya', form.wilaya)
-    body.append('objet', form.objet.trim())
-    body.append('description', form.description.trim())
-    body.append('id_service', form.domaine)
-    body.append('id_nature', form.nature)
-    body.append('id_qualite', form.qualite)
-    if (file) {
-      body.append('piece_jointe', file)
+    const wilaya = WILAYAS.find((w) => String(w.code) === String(form.wilaya))
+    const service = referentiels.services.find(
+      (s) => String(s.id_service) === String(form.domaine),
+    )
+    const nativeFile = toNativeFile(file)
+
+    const formData = new FormData()
+    formData.append('nom', form.nom.trim())
+    formData.append('prenom', form.prenom.trim())
+    formData.append('email', form.email.trim())
+    formData.append('telephone', form.telephone.trim())
+    formData.append('wilaya', wilaya?.nameFr ?? form.wilaya)
+    formData.append('objet', form.objet.trim())
+    formData.append('description', form.description.trim())
+    formData.append('id_nature', form.nature)
+    formData.append('id_qualite', form.qualite)
+    formData.append('id_service', form.domaine)
+    if (nativeFile) {
+      formData.append('piece_jointe', nativeFile)
     }
 
     setIsSubmitting(true)
     try {
-      const response = await api.post('/doleances', body)
+      // axios ne résout la promesse que pour une réponse 2xx :
+      // on ne dépend donc pas d'un code 201 précis.
+      const response = await api.post('/doleances', formData)
+      const reference = response.data?.reference
 
-      if (response.status === 201) {
-        navigate('/confirmation', {
-          state: {
-            reference: response.data.reference,
-            email: form.email.trim(),
-            domaine: form.domaine,
-            depositedAt: new Date().toISOString(),
-          },
-        })
+      if (!reference) {
+        setSubmitError(t.deposit.submitFailed)
+        return
       }
+
+      navigate('/deposer/confirmation', {
+        state: {
+          reference,
+          email: form.email.trim(),
+          domaineLabel: service?.nom_service ?? '',
+          depositedAt: new Date().toISOString(),
+        },
+      })
     } catch (err) {
       const status = err.response?.status
-      if (status === 422) {
-        applyLaravelErrors(err.response.data?.errors)
+      const apiErrors = err.response?.data?.errors
+
+      if (status === 422 && apiErrors && Object.keys(apiErrors).length) {
+        applyLaravelErrors(apiErrors)
       } else {
-        setErrors((prev) => ({
-          ...prev,
-          description:
-            err.response?.data?.message ||
-            (lang === 'ar'
-              ? 'تعذّر إرسال الطلب. أعيدوا المحاولة.'
-              : "Impossible d'envoyer la demande. Réessayez."),
-        }))
+        // Serveur éteint, erreur 500, ou 422 sans détail par champ.
+        setSubmitError(t.deposit.submitFailed)
       }
     } finally {
       setIsSubmitting(false)
@@ -252,6 +332,12 @@ export default function DeposerDoleance() {
           {t.deposit.subtitle}
         </p>
 
+        {referentielsFailed && (
+          <p className="mb-6 text-sm text-red-600" role="alert">
+            {t.deposit.referentielsError}
+          </p>
+        )}
+
         <form onSubmit={handleSubmit} noValidate>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="space-y-6">
@@ -270,6 +356,7 @@ export default function DeposerDoleance() {
                       id="nom"
                       name="nom"
                       autoComplete="family-name"
+                      maxLength={60}
                       placeholder={t.deposit.personal.nomPlaceholder}
                       value={form.nom}
                       onChange={(e) => setValue('nom', e.target.value)}
@@ -288,6 +375,7 @@ export default function DeposerDoleance() {
                       id="prenom"
                       name="prenom"
                       autoComplete="given-name"
+                      maxLength={60}
                       placeholder={t.deposit.personal.prenomPlaceholder}
                       value={form.prenom}
                       onChange={(e) => setValue('prenom', e.target.value)}
@@ -308,6 +396,7 @@ export default function DeposerDoleance() {
                       type="email"
                       autoComplete="email"
                       dir="ltr"
+                      maxLength={120}
                       placeholder={t.deposit.personal.emailPlaceholder}
                       value={form.email}
                       onChange={(e) => setValue('email', e.target.value)}
@@ -327,6 +416,7 @@ export default function DeposerDoleance() {
                       type="tel"
                       autoComplete="tel"
                       dir="ltr"
+                      maxLength={20}
                       placeholder={t.deposit.personal.telephonePlaceholder}
                       value={form.telephone}
                       onChange={(e) => setValue('telephone', e.target.value)}
@@ -378,11 +468,12 @@ export default function DeposerDoleance() {
                       onChange={(e) => setValue('nature', e.target.value)}
                       onBlur={() => onBlur('nature')}
                       error={errors.nature}
+                      disabled={referentielsLoading || referentielsFailed}
                     >
                       <option value="">{t.deposit.request.choose}</option>
-                      {t.deposit.request.natures.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
+                      {referentiels.natures.map((o) => (
+                        <option key={o.id_nature} value={String(o.id_nature)}>
+                          {o.libelle}
                         </option>
                       ))}
                     </SelectInput>
@@ -400,11 +491,12 @@ export default function DeposerDoleance() {
                       onChange={(e) => setValue('qualite', e.target.value)}
                       onBlur={() => onBlur('qualite')}
                       error={errors.qualite}
+                      disabled={referentielsLoading || referentielsFailed}
                     >
                       <option value="">{t.deposit.request.choose}</option>
-                      {t.deposit.request.qualites.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
+                      {referentiels.qualites.map((o) => (
+                        <option key={o.id_qualite} value={String(o.id_qualite)}>
+                          {o.libelle}
                         </option>
                       ))}
                     </SelectInput>
@@ -422,11 +514,12 @@ export default function DeposerDoleance() {
                       onChange={(e) => setValue('domaine', e.target.value)}
                       onBlur={() => onBlur('domaine')}
                       error={errors.domaine}
+                      disabled={referentielsLoading || referentielsFailed}
                     >
                       <option value="">{t.deposit.request.choose}</option>
-                      {t.deposit.request.domaines.map((o) => (
-                        <option key={o.value} value={o.value}>
-                          {o.label}
+                      {referentiels.services.map((o) => (
+                        <option key={o.id_service} value={String(o.id_service)}>
+                          {o.nom_service}
                         </option>
                       ))}
                     </SelectInput>
@@ -441,6 +534,7 @@ export default function DeposerDoleance() {
                   <TextInput
                     id="objet"
                     name="objet"
+                    maxLength={200}
                     placeholder={t.deposit.request.objetPlaceholder}
                     value={form.objet}
                     onChange={(e) => setValue('objet', e.target.value)}
@@ -480,6 +574,12 @@ export default function DeposerDoleance() {
                 </div>
               </section>
 
+              {submitError && (
+                <p className="text-sm text-red-600" role="alert">
+                  {submitError}
+                </p>
+              )}
+
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-3">
                 <p className="text-sm text-gray-500">{t.deposit.duration}</p>
@@ -493,7 +593,8 @@ export default function DeposerDoleance() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting}
+                    disabled={isSubmitting || referentielsLoading || referentielsFailed}
+                    aria-busy={isSubmitting}
                     className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040] disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {t.deposit.continue}

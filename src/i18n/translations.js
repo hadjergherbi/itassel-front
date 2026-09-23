@@ -209,6 +209,10 @@ export const translations = {
       duration: 'Environ 3 minutes',
       cancel: 'Annuler',
       continue: 'Vérifier et continuer',
+      referentielsError:
+        'Impossible de charger les listes (nature, qualité, domaine). Vérifiez votre connexion et réessayez.',
+      submitFailed:
+        "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
       errors: {
         required: 'Ce champ est obligatoire.',
         nameInvalid: 'Format invalide. Lettres, espaces, tirets et apostrophes uniquement.',
@@ -562,6 +566,9 @@ export const translations = {
       duration: 'حوالي 3 دقائق',
       cancel: 'إلغاء',
       continue: 'تحقق ومتابعة',
+      referentielsError:
+        'تعذّر تحميل القوائم (الطبيعة، الصفة، المجال). تحققوا من الاتصال وأعيدوا المحاولة.',
+      submitFailed: 'فشل الإرسال. تحققوا من الاتصال وأعيدوا المحاولة.',
       errors: {
         required: 'هذا الحقل إلزامي.',
         nameInvalid: 'صيغة غير صالحة. حروف ومسافات وشرطات فقط.',
