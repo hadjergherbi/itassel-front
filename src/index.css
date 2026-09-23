@@ -2,12 +2,37 @@
 
 @theme {
   --color-institutional: #006b3f;
+  --color-institutional-hover: #005a35;
   --color-action: #00984a;
   --color-page: #f5f7fa;
+  --color-sidebar: #0b4a31;
+  --color-primary: #006b3f;
+  --color-primary-hover: #005a35;
   --color-warning-bg: #fff4e5;
   --color-warning-border: #f5c77a;
   --color-warning-text: #8a5a00;
-  --font-sans: "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --color-success-bg: #e6f6ed;
+  --color-success-text: #006b3f;
+  --color-danger-bg: #fde8e8;
+  --color-danger-text: #b42318;
+  --color-nouvelle: #1a5f9e;
+  --color-nouvelle-bg: #e8f1fb;
+  --color-en-cours: #d97706;
+  --color-en-cours-bg: #fff4e5;
+  --color-info-demandee: #7c3aed;
+  --color-info-demandee-bg: #f3e8ff;
+  --color-resolue: #006b3f;
+  --color-resolue-bg: #e6f6ed;
+  --color-hors-competence: #6b7280;
+  --color-hors-competence-bg: #f3f4f6;
+  --color-non-fondee: #b42318;
+  --color-non-fondee-bg: #fde8e8;
+  --color-double: #0f766e;
+  --color-double-bg: #e0f5f3;
+  --color-reclasser: #d97706;
+  --color-reclasser-bg: #fff4e5;
+  --font-sans: "IBM Plex Sans", "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-brand: 8px;
 }
 

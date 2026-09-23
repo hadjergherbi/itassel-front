@@ -1,10 +1,19 @@
+// Couleurs des 7 statuts (cahier de refonte UX, §3) :
+// Nouvelle = bleu, En cours = orange, Information demandée = violet,
+// Traitée = vert, Clôturée = gris, Non fondée = rouge, Double doléance = turquoise.
 const variants = {
   nouvelle: 'bg-[#e8f1fb] text-[#1a5f9e]',
   en_cours: 'bg-[#fff4e5] text-[#8a5a00]',
   information_demandee: 'bg-[#f3e8ff] text-[#6b21a8]',
   resolue: 'bg-[#e6f6ed] text-institutional',
   deposee: 'bg-[#e6f6ed] text-institutional',
+  cloturee: 'bg-gray-100 text-gray-700',
+  hors_competence: 'bg-gray-100 text-gray-700',
+  answered: 'bg-[#e6f6ed] text-institutional',
+  non_fondee: 'bg-[#fde8e8] text-[#b42318]',
   refusee: 'bg-[#fde8e8] text-[#b42318]',
+  double: 'bg-[#e0f5f3] text-[#0f766e]',
+  a_reclasser: 'bg-[#fff4e5] text-[#8a5a00]',
   default: 'bg-gray-100 text-gray-700',
 }
 
@@ -14,7 +23,13 @@ const dots = {
   information_demandee: 'bg-[#7c3aed]',
   resolue: 'bg-institutional',
   deposee: 'bg-institutional',
+  cloturee: 'bg-gray-500',
+  hors_competence: 'bg-gray-500',
+  answered: 'bg-institutional',
+  non_fondee: 'bg-[#b42318]',
   refusee: 'bg-[#b42318]',
+  double: 'bg-[#0d9488]',
+  a_reclasser: 'bg-[#d97706]',
   default: 'bg-gray-500',
 }
 

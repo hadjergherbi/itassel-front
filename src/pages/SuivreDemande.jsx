@@ -12,6 +12,12 @@ const MAX_REQUESTS = 3
 const MAX_ATTEMPTS = 5
 const OTP_LENGTH = 6
 
+// Clé utilisée pour garder la session de suivi si l'utilisateur recharge
+// la page du dossier (le state de react-router est perdu au rechargement).
+export const SUIVI_SESSION_KEY = 'itassel_suivi'
+
+const normalizeRef = (value) => value.trim().toUpperCase()
+
 function OtpInput({ value, onChange, disabled, error }) {
   const inputsRef = useRef([])
 
@@ -103,26 +109,31 @@ function OtpInput({ value, onChange, disabled, error }) {
   )
 }
 
-function MockBanner({ t, onExpire, expireDisabled }) {
+/**
+ * Bandeau réservé au développement (jamais affiché en production).
+ * Le vrai code n'est plus connu du navigateur : en attendant l'envoi
+ * d'emails réel, il est écrit dans le journal Laravel.
+ */
+function DevBanner({ t, onExpire, expireDisabled }) {
+  if (!import.meta.env.DEV) return null
+
   return (
     <>
       <div className="mt-6 rounded-[8px] border border-dashed border-gray-300 bg-white/70 px-4 py-3">
         <div className="flex items-start gap-2.5">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-          <p className="text-sm leading-relaxed text-gray-600">
-            <span className="font-semibold text-gray-800">{t.track.mockTitle}</span>{' '}
-            {t.track.mockBody}
+          <p className="text-sm leading-relaxed text-gray-600" dir="ltr">
+            <span className="font-semibold text-gray-800">Mode développement.</span>{' '}
+            Le code à 6 chiffres est écrit dans le fichier{' '}
+            <code className="rounded bg-gray-100 px-1">storage/logs/laravel.log</code>{' '}
+            du projet Laravel (dernière ligne « Code de vérification (TEST) »).
+            Ce bandeau n'apparaît pas en production.
           </p>
         </div>
       </div>
 
-      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
-        <p className="text-sm text-gray-500" dir="ltr">
-          <span className="font-medium text-gray-700">{t.track.demoCodeLabel}</span>
-          {' : '}
-          {t.track.demoHint} {t.track.demoCode}
-        </p>
-        {onExpire && (
+      {onExpire && (
+        <div className="mt-3 flex justify-end">
           <button
             type="button"
             onClick={onExpire}
@@ -131,20 +142,21 @@ function MockBanner({ t, onExpire, expireDisabled }) {
           >
             {t.track.demoExpire}
           </button>
-        )}
-      </div>
+        </div>
+      )}
     </>
   )
 }
 
 export default function SuivreDemande() {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
 
   const [step, setStep] = useState('demande')
+  // Pré-rempli seulement si on arrive depuis l'écran de confirmation.
   const [reference, setReference] = useState(
-    () => location.state?.reference || 'ITS-2026-4821',
+    () => location.state?.reference || '',
   )
   const [refError, setRefError] = useState('')
   const [codeRequestCount, setCodeRequestCount] = useState(0)
@@ -155,9 +167,16 @@ export default function SuivreDemande() {
   const [statusMsg, setStatusMsg] = useState('')
   const [isRequesting, setIsRequesting] = useState(false)
   const [isVerifying, setIsVerifying] = useState(false)
+  const [networkError, setNetworkError] = useState('')
 
   const requestsExhausted = codeRequestCount >= MAX_REQUESTS
   const attemptsExhausted = verifyAttempts >= MAX_ATTEMPTS
+
+  const networkErrorText =
+    t.track.networkError ||
+    (lang === 'ar'
+      ? 'تعذّر الاتصال بالخادم. تحقّق من اتصالك وأعد المحاولة.'
+      : 'Connexion au serveur impossible. Vérifiez votre connexion et réessayez.')
 
   const validateRef = (value) => {
     const trimmed = value.trim()
@@ -166,68 +185,64 @@ export default function SuivreDemande() {
     return ''
   }
 
-  const enterVerificationStep = () => {
-    setCodeRequestCount((n) => n + 1)
-    setVerifyAttempts(0)
-    setOtp('')
-    setCodeError('')
-    setCodeExpired(false)
-    setStatusMsg('')
-    setStep('verification')
+  /**
+   * Demande un code au backend. La réponse est volontairement la même
+   * que la référence existe ou non : on passe donc toujours à l'étape
+   * de vérification en cas de succès.
+   */
+  const requestCode = async () => {
+    if (requestsExhausted) {
+      setStatusMsg(t.track.maxRequests)
+      return
+    }
+
+    setIsRequesting(true)
+    setNetworkError('')
+    try {
+      await api.post('/suivi/demander-code', {
+        reference: normalizeRef(reference),
+      })
+      setCodeRequestCount((n) => n + 1)
+      setVerifyAttempts(0)
+      setOtp('')
+      setCodeError('')
+      setCodeExpired(false)
+      setStatusMsg('')
+      setStep('verification')
+    } catch (err) {
+      if (err.response?.status === 422) {
+        setRefError(t.track.errors.invalid)
+      } else {
+        setNetworkError(networkErrorText)
+      }
+    } finally {
+      setIsRequesting(false)
+    }
   }
 
-  const demanderCodeApi = async () => {
-    await api.post('/suivi/demander-code', {
-      reference: reference.trim().toUpperCase(),
-    })
-  }
-
-  const handleRequestSubmit = async (e) => {
+  const handleRequestSubmit = (e) => {
     e.preventDefault()
+    if (isRequesting) return
     const msg = validateRef(reference)
     setRefError(msg)
     if (msg) return
-
-    if (requestsExhausted) {
-      setStatusMsg(t.track.maxRequests)
-      return
-    }
-    if (isRequesting) return
-
-    setIsRequesting(true)
-    try {
-      // 200 toujours (même si la référence n'existe pas) — ne pas révéler l'existence
-      await demanderCodeApi()
-      enterVerificationStep()
-    } catch {
-      // En cas d'erreur réseau, même parcours neutre pour ne pas fuiter d'info
-      enterVerificationStep()
-    } finally {
-      setIsRequesting(false)
-    }
+    requestCode()
   }
 
-  const handleResend = async () => {
+  const handleResend = () => {
+    if (isRequesting) return
     if (requestsExhausted) {
       setStatusMsg(t.track.maxRequests)
       return
     }
-    if (isRequesting) return
-
-    setIsRequesting(true)
-    try {
-      await demanderCodeApi()
-      enterVerificationStep()
-    } catch {
-      enterVerificationStep()
-    } finally {
-      setIsRequesting(false)
-    }
+    requestCode()
   }
 
   const handleVerify = async (e) => {
     e.preventDefault()
+    if (isVerifying) return
     setStatusMsg('')
+    setNetworkError('')
 
     if (codeExpired) {
       setCodeError(t.track.codeExpired)
@@ -243,35 +258,44 @@ export default function SuivreDemande() {
       setCodeError(t.track.codeRequired)
       return
     }
-    if (isVerifying) return
 
     setIsVerifying(true)
-    setCodeError('')
     try {
-      const response = await api.post('/suivi/verifier-code', {
-        reference: reference.trim().toUpperCase(),
+      const res = await api.post('/suivi/verifier-code', {
+        reference: normalizeRef(reference),
         code,
       })
 
-      if (response.status === 200) {
-        navigate('/suivre/dossier', {
-          state: {
-            reference: reference.trim().toUpperCase(),
-            jetonSession: response.data.jeton_session,
-          },
-        })
+      const jetonSession = res.data?.jeton_session
+      if (!jetonSession) {
+        setCodeError(t.track.codeInvalid)
+        return
       }
+
+      const session = {
+        reference: normalizeRef(reference),
+        jetonSession,
+        expiresAt: Date.now() + (res.data.expire_dans_min ?? 30) * 60 * 1000,
+      }
+
+      try {
+        sessionStorage.setItem(SUIVI_SESSION_KEY, JSON.stringify(session))
+      } catch {
+        // Stockage indisponible (navigation privée stricte) : le state suffit.
+      }
+
+      setCodeError('')
+      navigate('/suivre/dossier', { state: { ...session, fromVerify: true } })
     } catch (err) {
       if (err.response?.status === 422) {
+        // Code faux, expiré ou déjà utilisé : même message côté backend.
         const nextAttempts = verifyAttempts + 1
         setVerifyAttempts(nextAttempts)
-        if (nextAttempts >= MAX_ATTEMPTS) {
-          setCodeError(t.track.maxAttempts)
-        } else {
-          setCodeError(err.response.data?.message || t.track.codeInvalid)
-        }
+        setCodeError(
+          nextAttempts >= MAX_ATTEMPTS ? t.track.maxAttempts : t.track.codeInvalid,
+        )
       } else {
-        setCodeError(err.response?.data?.message || t.track.codeInvalid)
+        setNetworkError(networkErrorText)
       }
     } finally {
       setIsVerifying(false)
@@ -303,6 +327,7 @@ export default function SuivreDemande() {
                 name="reference"
                 dir="ltr"
                 autoComplete="off"
+                maxLength={20}
                 placeholder={t.track.refPlaceholder}
                 value={reference}
                 onChange={(e) => {
@@ -318,6 +343,7 @@ export default function SuivreDemande() {
             <button
               type="submit"
               disabled={requestsExhausted || isRequesting}
+              aria-busy={isRequesting}
               className="mb-4 inline-flex w-full items-center justify-center gap-2 rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040] disabled:cursor-not-allowed disabled:opacity-50"
             >
               <Mail className="h-4 w-4" aria-hidden />
@@ -332,6 +358,12 @@ export default function SuivreDemande() {
             {requestsExhausted && (
               <p className="mt-3 text-sm text-red-600" role="alert">
                 {t.track.maxRequests}
+              </p>
+            )}
+
+            {networkError && (
+              <p className="mt-3 text-sm text-red-600" role="alert">
+                {networkError}
               </p>
             )}
           </form>
@@ -366,6 +398,7 @@ export default function SuivreDemande() {
               <button
                 type="submit"
                 disabled={attemptsExhausted || codeExpired || isVerifying}
+                aria-busy={isVerifying}
                 className="inline-flex flex-1 items-center justify-center rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t.track.verify}
@@ -374,6 +407,7 @@ export default function SuivreDemande() {
                 type="button"
                 onClick={handleResend}
                 disabled={requestsExhausted || isRequesting}
+                aria-busy={isRequesting}
                 className="inline-flex flex-1 items-center justify-center rounded-[8px] border border-action bg-white px-4 py-2.5 text-sm font-medium text-action transition hover:bg-[#e6f6ed] disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {t.track.resend}
@@ -388,6 +422,12 @@ export default function SuivreDemande() {
               </p>
             )}
 
+            {networkError && (
+              <p className="mt-3 text-sm text-red-600" role="alert">
+                {networkError}
+              </p>
+            )}
+
             {statusMsg && (
               <p
                 className="mt-4 rounded-[8px] border border-action/30 bg-[#e6f6ed] px-4 py-3 text-sm text-institutional"
@@ -399,21 +439,19 @@ export default function SuivreDemande() {
           </form>
         )}
 
-        {import.meta.env.DEV && (
-          <MockBanner
-            t={t}
-            onExpire={
-              step === 'verification'
-                ? () => {
-                    setCodeExpired(true)
-                    setCodeError(t.track.codeExpired)
-                    setStatusMsg('')
-                  }
-                : undefined
-            }
-            expireDisabled={codeExpired}
-          />
-        )}
+        <DevBanner
+          t={t}
+          onExpire={
+            step === 'verification'
+              ? () => {
+                  setCodeExpired(true)
+                  setCodeError(t.track.codeExpired)
+                  setStatusMsg('')
+                }
+              : undefined
+          }
+          expireDisabled={codeExpired}
+        />
       </main>
 
       <Footer />

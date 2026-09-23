@@ -4,6 +4,9 @@ const DOT = {
   deposee: 'bg-institutional',
   resolue: 'bg-institutional',
   nouvelle: 'bg-[#1a5f9e]',
+  cloturee: 'bg-gray-500',
+  non_fondee: 'bg-[#b42318]',
+  double: 'bg-[#0d9488]',
   default: 'bg-gray-400',
 }
 
