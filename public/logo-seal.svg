@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 80 80" fill="none">
+  <circle cx="40" cy="40" r="38" fill="#006B3F"/>
+  <circle cx="40" cy="40" r="32" stroke="#C8A951" stroke-width="2" fill="#006B3F"/>
+  <circle cx="40" cy="40" r="28" stroke="#C8A951" stroke-width="0.8" fill="none"/>
+  <path d="M40 18c-8 6-12 12-12 20 0 8 5 14 12 18 7-4 12-10 12-18 0-8-4-14-12-20z" fill="#C8A951"/>
+  <path d="M36 28c4-1 8 1 10 5-3-1-6 0-8 2-3 3-3 7-1 10-4-2-7-7-5-13 1-2 2-3 4-4z" fill="#006B3F"/>
+  <path d="M28 52h24M30 55h20" stroke="#C8A951" stroke-width="1.2" stroke-linecap="round"/>
+  <text x="40" y="66" text-anchor="middle" fill="#C8A951" font-size="5" font-family="Roboto, sans-serif" font-weight="700">MJS</text>
+</svg>
