@@ -1,4 +1,7 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function ResultBadge({ result }) {
+  const { tf } = useLanguage()
   const ok = result === 'succes' || result === 'success' || result === true
   return (
     <span
@@ -8,7 +11,7 @@ export default function ResultBadge({ result }) {
       ].join(' ')}
     >
       <span className={`h-2 w-2 rounded-full ${ok ? 'bg-success-text' : 'bg-danger-text'}`} />
-      {ok ? 'Succès' : 'Échec'}
+      {ok ? tf('admin.ui.succes') : tf('admin.ui.echec')}
     </span>
   )
 }

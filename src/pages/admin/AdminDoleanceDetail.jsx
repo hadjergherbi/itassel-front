@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useLocation, useParams } from 'react-router-dom'
 import { ArrowLeft, Check, CircleAlert, Pencil } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import AdminHistoryTimeline from '../../components/admin/AdminHistoryTimeline'
@@ -19,11 +19,17 @@ import { Card, Info } from '../../components/admin/doleance/shared'
 import Button from '../../components/ui/Button'
 import adminApi, { extractErrors } from '../../lib/adminApi'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
-import { formatDate, nomComplet, statutKey } from '../../lib/statuts'
+import { nomComplet, statutKey } from '../../lib/statuts'
+import { useFormat, useLanguage } from '../../i18n/LanguageContext'
+import { rassemblerPieces } from '../../components/admin/doleance/helpers'
+import useVisionneuse from '../../components/admin/doleance/useVisionneuse'
 
 export default function AdminDoleanceDetail() {
   const { reference } = useParams()
+  const location = useLocation()
   const { estSuperAdmin } = useAdminAuth()
+  const { tf } = useLanguage()
+  const { formatDate } = useFormat()
 
   const [dossier, setDossier] = useState(null)
   const [loadState, setLoadState] = useState('loading')
@@ -37,6 +43,8 @@ export default function AdminDoleanceDetail() {
   const [modalReclasser, setModalReclasser] = useState(false)
   const [consulteId, setConsulteId] = useState(null)
   const [busyExamen, setBusyExamen] = useState(false)
+  const toutesPieces = useMemo(() => rassemblerPieces(dossier), [dossier])
+  const { ouvrir, visionneuse } = useVisionneuse(toutesPieces)
 
   const charger = useCallback(
     async ({ silent = false } = {}) => {
@@ -73,6 +81,16 @@ export default function AdminDoleanceDetail() {
   }, [charger])
 
   useEffect(() => {
+    if (loadState !== 'ready') return undefined
+    const hash = location.hash
+    if (hash !== '#notes-internes' && !hash.startsWith('#note-')) return undefined
+    const t = window.setTimeout(() => {
+      document.querySelector(hash)?.scrollIntoView({ behavior: 'smooth', block: hash.startsWith('#note-') ? 'center' : 'start' })
+    }, 120)
+    return () => window.clearTimeout(t)
+  }, [loadState, location.hash, location.key])
+
+  useEffect(() => {
     adminApi.get('/admin/statuts').then((r) => setStatuts(r.data ?? [])).catch(() => {})
     adminApi.get('/admin/modeles-message').then((r) => setModeles(r.data ?? [])).catch(() => {})
   }, [])
@@ -99,14 +117,14 @@ export default function AdminDoleanceDetail() {
     setBusyExamen(true)
     try {
       const res = await adminApi.post(`/admin/complements/${idComplement}/examiner`)
-      onDone('success', res.data?.message || 'Complément marqué comme examiné.')
+      onDone('success', res.data?.message || tf('admin.detail.examineOk'))
     } catch (err) {
       const code = err.response?.data?.code
-      const { message } = extractErrors(err, 'Impossible de marquer ce complément comme examiné.')
+      const { message } = extractErrors(err, tf('admin.detail.examineImpossible'))
       onDone(
         'error',
         code === 'etat_invalide'
-          ? message || "Ce complément n'est plus en attente d'examen."
+          ? message || tf('admin.detail.plusEnAttente')
           : message,
       )
     } finally {
@@ -119,7 +137,7 @@ export default function AdminDoleanceDetail() {
       to="/admin/doleances"
       className="mb-4 inline-flex items-center gap-1.5 text-sm text-gray-600 transition hover:text-institutional"
     >
-      <ArrowLeft className="h-4 w-4" aria-hidden /> Retour à la liste
+      <ArrowLeft className="h-4 w-4 rtl:-scale-x-100" aria-hidden /> {tf('admin.detail.retour')}
     </Link>
   )
 
@@ -127,7 +145,7 @@ export default function AdminDoleanceDetail() {
     return (
       <div className="mx-auto max-w-7xl">
         {retour}
-        <p className="text-sm text-gray-500">Chargement du dossier…</p>
+        <p className="text-sm text-gray-500">{tf('admin.detail.chargement')}</p>
       </div>
     )
   }
@@ -137,18 +155,21 @@ export default function AdminDoleanceDetail() {
       <div className="mx-auto max-w-7xl">
         {retour}
         <div className="max-w-lg rounded-[8px] border border-gray-200 bg-white p-6 shadow-sm">
-          <h1 className="mb-2 text-lg font-bold text-gray-900">Ce dossier a été réaffecté</h1>
+          <h1 className="mb-2 text-lg font-bold text-gray-900">{tf('admin.detail.reaffecteTitre')}</h1>
           <p className="mb-4 text-sm text-gray-700">
             {dossierReaffecte?.message ||
-              `Le dossier ${dossierReaffecte?.reference ?? reference} a été transféré${
-                dossierReaffecte?.service ? ` au service ${dossierReaffecte.service}` : ''
-              }.`}
+              (dossierReaffecte?.service
+                ? tf('admin.detail.reaffecteService', {
+                    reference: dossierReaffecte?.reference ?? reference,
+                    service: dossierReaffecte.service,
+                  })
+                : tf('admin.detail.reaffecte', { reference: dossierReaffecte?.reference ?? reference }))}
           </p>
           <Link
             to="/admin/doleances"
             className="inline-flex rounded-[8px] bg-action px-4 py-2 text-sm font-medium text-white"
           >
-            Retour à la liste
+            {tf('admin.detail.retour')}
           </Link>
         </div>
       </div>
@@ -162,11 +183,11 @@ export default function AdminDoleanceDetail() {
         <div className="max-w-lg rounded-[8px] border border-gray-200 bg-white p-6 shadow-sm">
           <p className="mb-4 text-sm text-gray-700">
             {loadState === 'notfound'
-              ? "Ce dossier n'existe pas, ou vous n'y avez pas accès."
-              : 'Impossible de charger le dossier.'}
+              ? tf('admin.detail.introuvable')
+              : tf('admin.detail.erreur')}
           </p>
           {loadState === 'error' && (
-            <Button onClick={() => charger()}>Réessayer</Button>
+            <Button onClick={() => charger()}>{tf('admin.detail.retry')}</Button>
           )}
         </div>
       </div>
@@ -198,26 +219,26 @@ export default function AdminDoleanceDetail() {
       <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
         <div>
           <div className="flex flex-wrap items-center gap-3">
-            <h1 className="font-mono text-2xl font-bold text-institutional" dir="ltr">
+            <h1 className="ltr-isolate font-mono text-2xl font-bold text-institutional">
               {d.reference}
             </h1>
             <StatusBadge status={statutKey(d.statut)} label={d.statut?.libelle} showDot />
-            {legacy && <StatusBadge status="a_reclasser" label="Ancien classement" />}
+            {legacy && <StatusBadge status="a_reclasser" label={tf('admin.detail.ancienClassement')} />}
             {d.complement_a_examiner && (
-              <StatusBadge status="en_cours" label="Complément reçu" showDot />
+              <StatusBadge status="en_cours" label={tf('admin.detail.complementRecu')} showDot />
             )}
           </div>
-          <p className="mt-1 text-sm text-gray-500">Reçue le {formatDate(d.date_depot)}</p>
+          <p className="mt-1 text-sm text-gray-500">{tf('admin.detail.recueLe', { date: formatDate(d.date_depot) })}</p>
         </div>
         <div className="flex flex-wrap gap-2">
           {legacy && estSuperAdmin && (
             <Button variant="secondary" onClick={() => setModalReclasser(true)}>
-              Reclasser
+              {tf('admin.detail.reclasser')}
             </Button>
           )}
           <Button onClick={() => ouvrirStatut(null)}>
             <Pencil className="h-4 w-4" aria-hidden />
-            Changer le statut
+            {tf('admin.detail.changerStatut')}
           </Button>
         </div>
       </div>
@@ -235,46 +256,46 @@ export default function AdminDoleanceDetail() {
       {d.complement_a_examiner && (
         <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-[8px] border border-warning-border bg-warning-bg px-4 py-3">
           <p className="text-sm text-warning-text">
-            <span className="font-semibold">Complément reçu, non examiné.</span> Consultez la
-            réponse du demandeur avant de conclure le dossier.{' '}
+            <span className="font-semibold">{tf('admin.detail.complementNonExamine')}</span>{' '}
+            {tf('admin.detail.consulterAvant')}{' '}
             <a href="#complement-demandeur" className="font-medium underline underline-offset-2">
-              Aller au complément
+              {tf('admin.detail.allerComplement')}
             </a>
           </p>
           <Button
             disabled={!complementConsulte || busyExamen}
             title={
-              complementConsulte ? undefined : "Consultez d'abord le complément sur cette page."
+              complementConsulte ? undefined : tf('admin.detail.consulterDabord')
             }
             onClick={() => marquerExamine(idComplementRecu)}
           >
             <Check className="h-4 w-4" aria-hidden />
-            {busyExamen ? 'Enregistrement…' : 'Marquer comme examiné'}
+            {busyExamen ? tf('admin.detail.enregistrement') : tf('admin.detail.marquerExamine')}
           </Button>
         </div>
       )}
 
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="space-y-6">
-          <Card title="Contenu de la doléance">
+          <Card title={tf('admin.detail.contenu')}>
             <div className="mb-5 grid gap-4 sm:grid-cols-4">
-              <Info label="Nature">{d.nature?.libelle}</Info>
-              <Info label="Domaine">{d.service?.nom_service}</Info>
-              <Info label="Qualité">{d.qualite?.libelle}</Info>
-              <Info label="Wilaya">{d.wilaya}</Info>
+              <Info label={tf('admin.detail.nature')}>{d.nature?.libelle}</Info>
+              <Info label={tf('admin.detail.domaine')}>{d.service?.nom_service}</Info>
+              <Info label={tf('admin.detail.qualite')}>{d.qualite?.libelle}</Info>
+              <Info label={tf('admin.detail.wilaya')}>{d.wilaya}</Info>
             </div>
             <div className="border-t border-gray-100 pt-4">
-              <p className="mb-1 text-xs text-gray-500">Objet</p>
+              <p className="mb-1 text-xs text-gray-500">{tf('admin.detail.objet')}</p>
               <p className="mb-4 text-base font-semibold text-gray-900">{d.objet}</p>
-              <p className="mb-1 text-xs text-gray-500">Description</p>
+              <p className="mb-1 text-xs text-gray-500">{tf('admin.detail.description')}</p>
               <p className="whitespace-pre-line text-sm leading-relaxed text-gray-800">{d.description}</p>
             </div>
             {d.doleance_initiale && (
               <p className="mt-4 text-sm text-gray-600">
-                Double de la doléance{' '}
+                {tf('admin.detail.doubleDe')}{' '}
                 <Link
                   to={`/admin/doleances/${d.doleance_initiale.reference}`}
-                  className="font-mono font-semibold text-institutional hover:underline"
+                  className="ltr-isolate font-mono font-semibold text-institutional hover:underline"
                 >
                   {d.doleance_initiale.reference}
                 </Link>
@@ -282,14 +303,14 @@ export default function AdminDoleanceDetail() {
             )}
           </Card>
 
-          <Card title="Demandeur">
+          <Card title={tf('admin.detail.demandeur')}>
             <div className="grid gap-4 sm:grid-cols-3">
-              <Info label="Nom et prénom">{nomComplet(d)}</Info>
-              <Info label="Email">
-                <span dir="ltr">{d.email}</span>
+              <Info label={tf('admin.detail.nomPrenom')}>{nomComplet(d)}</Info>
+              <Info label={tf('admin.detail.email')}>
+                <span className="ltr-isolate">{d.email}</span>
               </Info>
-              <Info label="Téléphone">
-                <span dir="ltr">{d.telephone}</span>
+              <Info label={tf('admin.detail.telephone')}>
+                <span className="ltr-isolate">{d.telephone}</span>
               </Info>
             </div>
           </Card>
@@ -301,7 +322,11 @@ export default function AdminDoleanceDetail() {
             />
           )}
 
-          <PiecesJointes pieces={d.pieces_jointes} onError={(msg) => onDone('error', msg)} />
+          <PiecesJointes
+            pieces={d.pieces_jointes}
+            onError={(msg) => onDone('error', msg)}
+            onOuvrir={ouvrir}
+          />
 
           {d.complement_a_examiner && recu && (
             <ComplementDemandeur
@@ -309,19 +334,29 @@ export default function AdminDoleanceDetail() {
               consulte={complementConsulte}
               onConsulter={() => setConsulteId(idComplementRecu)}
               onError={(msg) => onDone('error', msg)}
+              onOuvrir={ouvrir}
             />
           )}
 
-          <Complements complements={autres} />
+          <Complements
+            complements={autres}
+            onError={(msg) => onDone('error', msg)}
+            onOuvrir={ouvrir}
+          />
           <Reponses reponses={d.reponses} />
           <RepondreDemandeur dossier={d} modeles={modelesReponse} onDone={onDone} />
-          <NotesInternes dossier={d} onDone={onDone} />
+          <NotesInternes dossier={d} onRefresh={() => charger({ silent: true })} />
         </div>
 
         <div className="space-y-6">
           <ReaffectationPanel dossier={d} onDone={onDone} />
           <Notifications notifications={d.notifications} />
-          <AdminHistoryTimeline historique={d.historique} demandeur={d} onDone={onDone} />
+          <AdminHistoryTimeline
+            historique={d.historique}
+            notesInternes={d.notes_internes}
+            demandeur={d}
+            onDone={onDone}
+          />
         </div>
       </div>
 
@@ -362,6 +397,7 @@ export default function AdminDoleanceDetail() {
         transitions={statuts}
         onDone={onDone}
       />
+      {visionneuse}
     </div>
   )
 }

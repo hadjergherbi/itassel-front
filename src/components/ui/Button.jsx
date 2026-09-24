@@ -1,3 +1,5 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function Button({
   variant = 'primary',
   size = 'md',
@@ -6,8 +8,10 @@ export default function Button({
   className = '',
   type = 'button',
   children,
+  ref,
   ...props
 }) {
+  const { tf } = useLanguage()
   const variants = {
     primary: 'bg-primary text-white hover:bg-primary-hover',
     secondary: 'border border-gray-300 bg-white text-gray-700 hover:border-gray-400',
@@ -21,6 +25,7 @@ export default function Button({
   }
   return (
     <button
+      ref={ref}
       type={type}
       disabled={disabled || loading}
       aria-busy={loading || undefined}
@@ -32,7 +37,7 @@ export default function Button({
       ].join(' ')}
       {...props}
     >
-      {loading ? 'Envoi…' : children}
+      {loading ? tf('admin.ui.envoi') : children}
     </button>
   )
 }

@@ -16,6 +16,7 @@ import {
 import { useLanguage } from '../i18n/LanguageContext'
 import { WILAYAS } from '../data/wilayas'
 import api from '../lib/api'
+import { endpoints } from '../lib/endpoints'
 
 // Limites alignées sur la base de données (voir migration "doleances") :
 // nom/prenom 60, email 120, objet 200. Le formulaire bloque lui-même les
@@ -135,6 +136,9 @@ export default function DeposerDoleance() {
   const [referentielsLoading, setReferentielsLoading] = useState(true)
   const [referentielsFailed, setReferentielsFailed] = useState(false)
   const [submitError, setSubmitError] = useState('')
+  const [antiSpam, setAntiSpam] = useState(false)
+  const [jetonFormulaire, setJetonFormulaire] = useState('')
+  const [siteWeb, setSiteWeb] = useState('')
 
   useEffect(() => {
     let cancelled = false
@@ -179,6 +183,26 @@ export default function DeposerDoleance() {
       cancelled = true
     }
   }, [initialDomaine])
+
+  const chargerJeton = async () => {
+    const res = await endpoints.jetonFormulaire()
+    const jeton = res.data?.jeton ?? ''
+    setJetonFormulaire(jeton)
+    return jeton
+  }
+
+  useEffect(() => {
+    let cancelled = false
+    endpoints
+      .jetonFormulaire()
+      .then((res) => {
+        if (!cancelled) setJetonFormulaire(res.data?.jeton ?? '')
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   const setValue = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -282,7 +306,19 @@ export default function DeposerDoleance() {
     }
 
     setIsSubmitting(true)
+    setAntiSpam(false)
     try {
+      let jeton = jetonFormulaire
+      if (!jeton) {
+        try {
+          jeton = await chargerJeton()
+        } catch {
+          jeton = ''
+        }
+      }
+      formData.append('jeton_formulaire', jeton)
+      formData.append('site_web', siteWeb)
+
       // axios ne résout la promesse que pour une réponse 2xx :
       // on ne dépend donc pas d'un code 201 précis.
       const response = await api.post('/doleances', formData)
@@ -304,11 +340,17 @@ export default function DeposerDoleance() {
     } catch (err) {
       const status = err.response?.status
       const apiErrors = err.response?.data?.errors
+      const messageApi = err.response?.data?.message
 
       if (status === 422 && apiErrors && Object.keys(apiErrors).length) {
         applyLaravelErrors(apiErrors)
+      } else if (status === 422) {
+        setAntiSpam(true)
+        setSubmitError(
+          messageApi ||
+            "Votre demande n'a pas pu être envoyée. Rechargez la page et réessayez.",
+        )
       } else {
-        // Serveur éteint, erreur 500, ou 422 sans détail par champ.
         setSubmitError(t.deposit.submitFailed)
       }
     } finally {
@@ -338,7 +380,41 @@ export default function DeposerDoleance() {
           </p>
         )}
 
-        <form onSubmit={handleSubmit} noValidate>
+        {submitError && (
+          <div className="mb-6 rounded-[8px] bg-danger-bg px-4 py-3 text-sm text-danger-text" role="alert">
+            <p>{submitError}</p>
+            {antiSpam && (
+              <button
+                type="button"
+                onClick={() => {
+                  chargerJeton().catch(() => {})
+                  setSubmitError('')
+                  setAntiSpam(false)
+                }}
+                className="mt-2 font-semibold underline hover:no-underline"
+              >
+                Recharger le formulaire
+              </button>
+            )}
+          </div>
+        )}
+
+        <form onSubmit={handleSubmit} noValidate className="relative">
+          <div
+            aria-hidden="true"
+            className="pointer-events-none absolute -left-[10000px] top-auto h-px w-px overflow-hidden"
+          >
+            <label htmlFor="site_web">Site web</label>
+            <input
+              id="site_web"
+              name="site_web"
+              type="text"
+              tabIndex={-1}
+              autoComplete="off"
+              value={siteWeb}
+              onChange={(e) => setSiteWeb(e.target.value)}
+            />
+          </div>
           <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_280px] xl:grid-cols-[minmax(0,1fr)_300px]">
             <div className="space-y-6">
               {/* Informations personnelles */}
@@ -573,12 +649,6 @@ export default function DeposerDoleance() {
                   />
                 </div>
               </section>
-
-              {submitError && (
-                <p className="text-sm text-red-600" role="alert">
-                  {submitError}
-                </p>
-              )}
 
               {/* Actions */}
               <div className="flex flex-wrap items-center gap-3">

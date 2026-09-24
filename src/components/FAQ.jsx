@@ -20,7 +20,7 @@ export default function FAQ() {
   }
 
   return (
-    <section className="border-t border-gray-200/80 bg-white">
+    <section id="faq" className="border-t border-gray-200/80 bg-white">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <h2 className="mb-6 text-2xl font-bold text-gray-900 sm:mb-8 sm:text-3xl">
           {t.faq.title}

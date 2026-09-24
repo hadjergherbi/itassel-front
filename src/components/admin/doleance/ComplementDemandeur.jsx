@@ -3,7 +3,7 @@ import StatusBadge from '../../StatusBadge'
 import { formatDate } from '../../../lib/statuts'
 import { Card, PieceLigne } from './shared'
 
-export default function ComplementDemandeur({ complement, consulte, onConsulter, onError }) {
+export default function ComplementDemandeur({ complement, consulte, onConsulter, onError, onOuvrir }) {
   const pieces = complement.pieces_jointes ?? []
 
   return (
@@ -49,7 +49,7 @@ export default function ComplementDemandeur({ complement, consulte, onConsulter,
           {pieces.length > 0 && (
             <ul className="divide-y divide-gray-100 rounded-[8px] border border-gray-200">
               {pieces.map((p) => (
-                <PieceLigne key={p.id_piece} piece={p} onError={onError} />
+                <PieceLigne key={p.id_piece} piece={p} onError={onError} onOuvrir={onOuvrir} />
               ))}
             </ul>
           )}

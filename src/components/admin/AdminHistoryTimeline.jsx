@@ -1,6 +1,9 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { StickyNote } from 'lucide-react'
 import { statutKey, formatDate, nomComplet } from '../../lib/statuts'
 import adminApi, { extractErrors } from '../../lib/adminApi'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { allerALaNote, dateNote } from './doleance/notesHelpers'
 
 const DOT = {
   nouvelle: 'bg-[#1a5f9e]',
@@ -145,10 +148,25 @@ function LigneNotification({ notification, typeEvenement, serviceResponsable, on
   )
 }
 
-export default function AdminHistoryTimeline({ historique = [], demandeur, onDone }) {
-  const items = [...historique].sort(
-    (a, b) => (Date.parse(b.date_evenement) || 0) - (Date.parse(a.date_evenement) || 0),
-  )
+export default function AdminHistoryTimeline({ historique = [], notesInternes = [], demandeur, onDone }) {
+  const { tf } = useLanguage()
+  const [afficherNotes, setAfficherNotes] = useState(false)
+
+  const items = useMemo(() => {
+    const evts = [...historique]
+    if (afficherNotes) {
+      notesInternes.forEach((n) => {
+        evts.push({
+          type_evenement: 'note_interne',
+          id_evenement: `note-${n.id_note}`,
+          date_evenement: dateNote(n),
+          note: n,
+          visible_demandeur: false,
+        })
+      })
+    }
+    return evts.sort((a, b) => (Date.parse(b.date_evenement) || 0) - (Date.parse(a.date_evenement) || 0))
+  }, [historique, notesInternes, afficherNotes])
 
   const renvoyer = async (notification) => {
     try {
@@ -166,12 +184,63 @@ export default function AdminHistoryTimeline({ historique = [], demandeur, onDon
 
   return (
     <aside className="rounded-[8px] border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
-      <h2 className="mb-5 text-base font-bold text-gray-900">Historique</h2>
+      <h2 className="mb-4 text-base font-bold text-gray-900">Historique</h2>
+      <div className="mb-5 flex items-center justify-between gap-3">
+        <label htmlFor="afficher-notes-internes" className="text-sm text-gray-700">
+          {tf('admin.notes.afficherDansHistorique')}
+        </label>
+        <button
+          id="afficher-notes-internes"
+          type="button"
+          role="switch"
+          aria-checked={afficherNotes}
+          onClick={() => setAfficherNotes((v) => !v)}
+          className={[
+            'relative h-6 w-11 shrink-0 rounded-full transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-institutional/40',
+            afficherNotes ? 'bg-action' : 'bg-gray-300',
+          ].join(' ')}
+        >
+          <span
+            className={[
+              'absolute top-0.5 start-0.5 h-5 w-5 rounded-full bg-white shadow transition-transform',
+              afficherNotes ? 'ltr:translate-x-5 rtl:-translate-x-5' : 'translate-x-0',
+            ].join(' ')}
+            aria-hidden
+          />
+        </button>
+      </div>
       {items.length === 0 ? (
         <p className="text-sm text-gray-500">Aucun événement pour le moment.</p>
       ) : (
         <ol className="relative space-y-5 border-s border-gray-200 ps-5">
           {items.map((h) => {
+            if (h.type_evenement === 'note_interne') {
+              const note = h.note
+              return (
+                <li key={h.id_evenement} className="relative">
+                  <span
+                    className="absolute -start-[1.65rem] top-0.5 inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#fff4e5] text-[#b45309] ring-4 ring-white"
+                    aria-hidden
+                  >
+                    <StickyNote className="h-3 w-3" />
+                  </span>
+                  <p className="text-sm font-semibold text-gray-900">
+                    {tf('admin.notes.noteDe', { nom: nomComplet(note?.auteur) })}
+                  </p>
+                  {note?.contenu && (
+                    <p className="mt-0.5 line-clamp-2 text-xs leading-relaxed text-gray-600">{note.contenu}</p>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => allerALaNote(note?.id_note)}
+                    className="mt-1 text-xs font-medium text-institutional underline underline-offset-2 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-institutional/40"
+                  >
+                    {tf('admin.notes.voirNote')}
+                  </button>
+                  <p className="mt-1 text-xs text-gray-400">{formatDate(h.date_evenement)}</p>
+                </li>
+              )
+            }
             const dot = DOT[couleurPoint(h)] ?? DOT.default
             const notifs = h.notifications ?? []
             const reaff = h.type_evenement === 'reaffectation' ? lignesReaffectation(h.detail) : null

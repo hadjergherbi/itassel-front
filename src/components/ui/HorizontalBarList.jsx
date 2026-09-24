@@ -1,6 +1,9 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function HorizontalBarList({ items = [], total }) {
+  const { tf } = useLanguage()
   if (!items.length) {
-    return <p className="py-8 text-center text-sm text-gray-500">Aucune donnée.</p>
+    return <p className="py-8 text-center text-sm text-gray-500">{tf('admin.dashboard.aucuneDonnee')}</p>
   }
   const base = total > 0 ? total : items.reduce((s, i) => s + (Number(i.total) || 0), 0)
   return (

@@ -1,12 +1,20 @@
 // Codes canoniques (minuscules) + alias métier / revue UX.
+import {
+  formatDate as formatDateI18n,
+  formatDateHeure as formatDateHeureI18n,
+  formatRelatif as formatRelatifI18n,
+} from '../i18n/format'
+
 const CODES = [
   'nouvelle',
   'en_cours',
   'information_demandee',
   'resolue',
+  'reponse_apportee',
   'answered',
   'cloturee',
   'hors_competence',
+  'non_retenue',
   'non_fondee',
   'double',
   'a_reclasser',
@@ -15,7 +23,7 @@ const CODES = [
 const ALIAS = {
   resolved: 'resolue',
   answered: 'answered',
-  reponse_apportee: 'answered',
+  reponse_apportee: 'reponse_apportee',
   out_of_scope: 'hors_competence',
   hors_competence: 'hors_competence',
   cloturee: 'cloturee',
@@ -48,7 +56,9 @@ export const STATUT_META = {
   information_demandee: { libelle: 'Information demandée', color: 'information_demandee', final: false },
   resolue: { libelle: 'Résolue', color: 'resolue', final: true },
   answered: { libelle: 'Réponse apportée', color: 'resolue', final: true },
+  reponse_apportee: { libelle: 'Réponse apportée', color: 'resolue', final: true },
   cloturee: { libelle: 'Clôturée', color: 'hors_competence', final: true },
+  non_retenue: { libelle: 'Non retenue', color: 'hors_competence', final: true },
   hors_competence: { libelle: 'Hors compétence', color: 'hors_competence', final: true },
   non_fondee: { libelle: 'Non fondée', color: 'non_fondee', final: true },
   double: { libelle: 'Double doléance', color: 'double', final: true },
@@ -114,6 +124,20 @@ export const LEGACY_MAPPING = [
   { ancien: 'DUPLICATE', propose: 'double', echangeable: false },
 ]
 
+export function libelleStatut(statut, t) {
+  const key = statutKey(statut)
+  const table = t?.admin?.statuts ?? t?.statuts
+  if (table?.[key]) return table[key]
+  if (key === 'answered' && table?.reponse_apportee) return table.reponse_apportee
+  if (typeof statut === 'object') return statut.libelle || statut.code || '—'
+  return STATUT_META[key]?.libelle || (statut ? String(statut) : '—')
+}
+
+export function libelleEvenement(code, t, fallback) {
+  const key = String(code ?? '').toLowerCase()
+  return t?.admin?.evenements?.[key] || fallback || code || '—'
+}
+
 export function statutKey(statut) {
   if (statut == null || statut === '') return 'default'
   if (typeof statut === 'object') {
@@ -164,18 +188,86 @@ export function issuesAutorisees(nature) {
   return ISSUES.filter((i) => !i.natures || i.natures.includes(n))
 }
 
+export const COULEURS_STATUT = {
+  nouvelle: { bar: 'bg-nouvelle', dot: 'bg-nouvelle' },
+  en_cours: { bar: 'bg-en-cours', dot: 'bg-en-cours' },
+  information_demandee: { bar: 'bg-info-demandee', dot: 'bg-info-demandee' },
+  resolue: { bar: 'bg-resolue', dot: 'bg-resolue' },
+  answered: { bar: 'bg-resolue', dot: 'bg-resolue' },
+  cloturee: { bar: 'bg-hors-competence', dot: 'bg-hors-competence' },
+  hors_competence: { bar: 'bg-hors-competence', dot: 'bg-hors-competence' },
+  non_fondee: { bar: 'bg-non-fondee', dot: 'bg-non-fondee' },
+  double: { bar: 'bg-double', dot: 'bg-double' },
+  a_reclasser: { bar: 'bg-reclasser', dot: 'bg-reclasser' },
+  default: { bar: 'bg-gray-400', dot: 'bg-gray-400' },
+}
+
 export function formatDate(iso, { withTime = true } = {}) {
   if (!iso) return '—'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  return new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    ...(withTime ? { hour: '2-digit', minute: '2-digit', hour12: false } : {}),
-  })
-    .format(date)
-    .replace(/\u202f/g, ' ')
+  return withTime ? formatDateHeureI18n(iso) : formatDateI18n(iso)
+}
+
+export function formatDateNumeric(valeur) {
+  return formatDateI18n(valeur)
+}
+
+export function formatDateHeure(iso) {
+  return formatDateHeureI18n(iso)
+}
+
+export function formatRelatif(iso) {
+  return formatRelatifI18n(iso)
+}
+
+export function isoDate(date) {
+  return `${date.getFullYear()}-${pad2(date.getMonth() + 1)}-${pad2(date.getDate())}`
+}
+
+export function datesPourPeriode(code) {
+  const fin = new Date()
+  const debut = new Date()
+  debut.setHours(0, 0, 0, 0)
+  fin.setHours(0, 0, 0, 0)
+  if (code === '30j') debut.setDate(debut.getDate() - 30)
+  else if (code === '3m') debut.setMonth(debut.getMonth() - 3)
+  else if (code === '6m') debut.setMonth(debut.getMonth() - 6)
+  else if (code === 'annee') debut.setFullYear(debut.getFullYear() - 1)
+  else debut.setMonth(debut.getMonth() - 6)
+  return { date_debut: isoDate(debut), date_fin: isoDate(fin) }
+}
+
+export function periodeTropLongue(debut, fin) {
+  const a = parseDate(debut)
+  const b = parseDate(fin)
+  if (!a || !b) return false
+  const limite = new Date(a)
+  limite.setMonth(limite.getMonth() + 12)
+  return b > limite
+}
+
+export function nomService(utilisateur) {
+  return utilisateur?.service?.nom ?? utilisateur?.service?.nom_service ?? ''
+}
+
+export function lignesDoleances(payload) {
+  if (!payload) return []
+  if (Array.isArray(payload)) return payload
+  if (Array.isArray(payload.data)) return payload.data
+  if (Array.isArray(payload.doleances?.data)) return payload.doleances.data
+  if (Array.isArray(payload.doleances)) return payload.doleances
+  return []
+}
+
+function pad2(n) {
+  return String(n).padStart(2, '0')
+}
+
+function parseDate(iso) {
+  if (!iso) return null
+  if (iso instanceof Date) return Number.isNaN(iso.getTime()) ? null : iso
+  const brute = String(iso)
+  const date = brute.length === 10 ? new Date(`${brute}T00:00:00`) : new Date(brute)
+  return Number.isNaN(date.getTime()) ? null : date
 }
 
 export function formatTaille(octets) {

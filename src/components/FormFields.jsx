@@ -58,13 +58,14 @@ export function SelectInput({ id, error, children, className = '', ...props }) {
   )
 }
 
-export function TextArea({ id, error, className = '', ...props }) {
+export function TextArea({ id, error, className = '', autoSize = false, ref, ...props }) {
   return (
     <textarea
+      ref={ref}
       id={id}
       className={[
         baseControl,
-        'min-h-[140px] resize-y',
+        autoSize ? 'resize-none overflow-y-auto' : 'min-h-[140px] resize-y',
         error
           ? 'border-red-400 focus:border-red-500 focus:ring-red-500/20'
           : 'border-gray-300 focus:border-institutional focus:ring-institutional/20',

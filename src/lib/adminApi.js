@@ -1,14 +1,30 @@
 import axios from 'axios'
+import {
+  ADMIN_EXPIRE_KEY,
+  ADMIN_LOGOUT_EVENT,
+  ADMIN_TOKEN_KEY,
+  AUTH_ACTIVITY_EVENT,
+  FLASH_SESSION_EXPIREE,
+  canalAuth,
+  diffuserAuth,
+  marquerDeconnexionEnCours,
+  sessionDeconnexionEnCours,
+  setPendingLoginState,
+} from './securite'
 
-// Jeton de connexion du back-office (valable 8 heures côté Laravel).
-export const ADMIN_TOKEN_KEY = 'itassel_admin_token'
-// Événement émis quand le jeton est refusé (expiré, supprimé) : l'écran
-// revient alors sur la page de connexion.
-export const ADMIN_LOGOUT_EVENT = 'itassel:admin-logout'
+export { ADMIN_LOGOUT_EVENT, ADMIN_TOKEN_KEY }
 
 export function readToken() {
   try {
     return localStorage.getItem(ADMIN_TOKEN_KEY)
+  } catch {
+    return null
+  }
+}
+
+export function readExpireLe() {
+  try {
+    return localStorage.getItem(ADMIN_EXPIRE_KEY)
   } catch {
     return null
   }
@@ -22,12 +38,65 @@ export function writeToken(token) {
   }
 }
 
+export function writeSession(token, expireLe) {
+  writeToken(token)
+  try {
+    if (expireLe) localStorage.setItem(ADMIN_EXPIRE_KEY, String(expireLe))
+    else localStorage.removeItem(ADMIN_EXPIRE_KEY)
+  } catch {
+    // ignore
+  }
+}
+
 export function clearToken() {
   try {
     localStorage.removeItem(ADMIN_TOKEN_KEY)
+    localStorage.removeItem(ADMIN_EXPIRE_KEY)
   } catch {
     // rien à nettoyer
   }
+}
+
+export function sessionEncoreValide() {
+  const token = readToken()
+  if (!token) return false
+  const expire = readExpireLe()
+  if (!expire) return true
+  const ts = Date.parse(expire)
+  if (Number.isNaN(ts)) return true
+  if (ts <= Date.now()) {
+    clearToken()
+    return false
+  }
+  return true
+}
+
+export function declencherSessionExpiree(from = window.location.pathname) {
+  if (sessionDeconnexionEnCours()) return
+  marquerDeconnexionEnCours()
+  clearToken()
+  const detail = { reason: 'expired', flash: FLASH_SESSION_EXPIREE, from }
+  setPendingLoginState({ flash: FLASH_SESSION_EXPIREE, from })
+  diffuserAuth({ type: 'logout', ...detail })
+  window.dispatchEvent(new CustomEvent(ADMIN_LOGOUT_EVENT, { detail }))
+}
+
+const canal = canalAuth()
+if (canal) {
+  canal.addEventListener('message', (event) => {
+    const data = event.data
+    if (data?.type === 'activity') {
+      window.dispatchEvent(new CustomEvent(AUTH_ACTIVITY_EVENT, { detail: data }))
+      return
+    }
+    if (data?.type === 'logout') {
+      if (sessionDeconnexionEnCours()) return
+      marquerDeconnexionEnCours()
+      clearToken()
+      if (data.flash) setPendingLoginState({ flash: data.flash, from: data.from })
+      window.dispatchEvent(new CustomEvent(ADMIN_LOGOUT_EVENT, { detail: data }))
+    }
+  })
 }
 
 const adminApi = axios.create({
@@ -36,6 +105,15 @@ const adminApi = axios.create({
 })
 
 adminApi.interceptors.request.use((config) => {
+  const url = config.url ?? ''
+  if (!url.includes('/admin/login')) {
+    const expire = readExpireLe()
+    const ts = expire ? Date.parse(expire) : NaN
+    if (!Number.isNaN(ts) && ts <= Date.now()) {
+      declencherSessionExpiree()
+      return Promise.reject(new axios.Cancel('Session expirée'))
+    }
+  }
   const token = readToken()
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
@@ -46,8 +124,7 @@ adminApi.interceptors.response.use(
   (error) => {
     const url = error.config?.url ?? ''
     if (error.response?.status === 401 && !url.includes('/admin/login')) {
-      clearToken()
-      window.dispatchEvent(new Event(ADMIN_LOGOUT_EVENT))
+      declencherSessionExpiree()
     }
     return Promise.reject(error)
   },
@@ -66,6 +143,35 @@ export function extractErrors(error, fallback = "L'opération a échoué. Réess
   if (!error?.response) message = 'Connexion au serveur impossible. Vérifiez votre connexion.'
   if (error?.response?.status === 429) message = 'Trop de tentatives. Réessayez dans une minute.'
   return { message, fields }
+}
+
+/** Lit un JSON d'erreur Laravel renvoyé dans un blob (export 422). */
+export async function extractBlobErrors(error, fallback = "L'opération a échoué. Réessayez.") {
+  const blob = error?.response?.data
+  if (blob instanceof Blob) {
+    try {
+      const json = JSON.parse(await blob.text())
+      const fake = { response: { status: error.response?.status, data: json } }
+      return extractErrors(fake, fallback)
+    } catch {
+      // blob non JSON
+    }
+  }
+  return extractErrors(error, fallback)
+}
+
+export function nomDepuisDisposition(header, fallback) {
+  if (!header) return fallback
+  const utf8 = header.match(/filename\*=UTF-8''([^;]+)/i)
+  if (utf8) {
+    try {
+      return decodeURIComponent(utf8[1].trim())
+    } catch {
+      return utf8[1].trim()
+    }
+  }
+  const simple = header.match(/filename="([^"]+)"/i) || header.match(/filename=([^;]+)/i)
+  return simple ? simple[1].trim() : fallback
 }
 
 export default adminApi

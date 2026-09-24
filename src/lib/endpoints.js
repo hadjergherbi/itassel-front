@@ -5,8 +5,15 @@ export const endpoints = {
   tableauDeBord: (params) => adminApi.get('/admin/tableau-de-bord', { params }),
   doleances: (params) => adminApi.get('/admin/doleances', { params }),
   doleance: (reference) => adminApi.get(`/admin/doleances/${encodeURIComponent(reference)}`),
+  apercuExportDoleances: (params) => adminApi.get('/admin/doleances/export/apercu', { params }),
   exportDoleances: (params) =>
     adminApi.get('/admin/doleances/export', { params, responseType: 'blob' }),
+  mesNotifications: (params) => adminApi.get('/admin/mes-notifications', { params }),
+  compteurNotifications: () => adminApi.get('/admin/mes-notifications/compteur'),
+  lireNotification: (id) => adminApi.post(`/admin/mes-notifications/${id}/lire`),
+  lireToutesNotifications: () => adminApi.post('/admin/mes-notifications/lire-tout'),
+  profil: () => adminApi.get('/admin/me'),
+  changerMotDePasse: (body) => adminApi.put('/admin/mot-de-passe', body),
   reclasser: (reference, body) => adminApi.post(`/admin/doleances/${reference}/reclasser`, body),
   reaffecter: (reference, body) =>
     adminApi.post(`/admin/doleances/${encodeURIComponent(reference)}/reaffecter`, body),
@@ -50,5 +57,7 @@ export const endpoints = {
     adminApi.get('/admin/journaux/export', { params, responseType: 'blob' }),
 
   verifierJeton: (jeton) => api.post('/admin/mot-de-passe/verifier-jeton', { jeton }),
+  motDePasseOublie: (email) => api.post('/admin/mot-de-passe-oublie', { email }),
   definirMotDePasse: (body) => api.post('/admin/mot-de-passe/definir', body),
+  jetonFormulaire: () => api.get('/formulaire/jeton'),
 }

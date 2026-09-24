@@ -10,6 +10,7 @@ import RequireAdmin from './admin/RequireAdmin'
 import RequireSuperAdmin from './admin/RequireSuperAdmin'
 import AdminLayout from './admin/AdminLayout'
 import AdminConnexion from './pages/admin/AdminConnexion'
+import MotDePasseOublie from './pages/admin/MotDePasseOublie'
 import AdminDashboard from './pages/admin/AdminDashboard'
 import AdminDoleances from './pages/admin/AdminDoleances'
 import AdminDoleanceDetail from './pages/admin/AdminDoleanceDetail'
@@ -21,6 +22,7 @@ import AdminIssues from './pages/admin/AdminIssues'
 import AdminLogsDashboard from './pages/admin/AdminLogsDashboard'
 import AdminJournal from './pages/admin/AdminJournal'
 import DefinirMotDePasse from './pages/DefinirMotDePasse'
+import AdminMonCompte from './pages/admin/AdminMonCompte'
 
 export default function App() {
   return (
@@ -37,6 +39,7 @@ export default function App() {
             <Route path="/definir-mot-de-passe" element={<DefinirMotDePasse />} />
 
             <Route path="/admin/connexion" element={<AdminConnexion />} />
+            <Route path="/admin/mot-de-passe-oublie" element={<MotDePasseOublie />} />
             <Route
               path="/admin"
               element={
@@ -47,6 +50,7 @@ export default function App() {
             >
               <Route index element={<Navigate to="tableau-de-bord" replace />} />
               <Route path="tableau-de-bord" element={<AdminDashboard />} />
+              <Route path="mon-compte" element={<AdminMonCompte />} />
               <Route path="doleances" element={<AdminDoleances />} />
               <Route path="doleances/:reference" element={<AdminDoleanceDetail />} />
               <Route

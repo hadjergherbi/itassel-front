@@ -1,3 +1,6 @@
+import { useLanguage } from '../i18n/LanguageContext'
+import { libelleStatut } from '../lib/statuts'
+
 // Couleurs des 7 statuts (cahier de refonte UX, §3) :
 // Nouvelle = bleu, En cours = orange, Information demandée = violet,
 // Traitée = vert, Clôturée = gris, Non fondée = rouge, Double doléance = turquoise.
@@ -10,6 +13,8 @@ const variants = {
   cloturee: 'bg-gray-100 text-gray-700',
   hors_competence: 'bg-gray-100 text-gray-700',
   answered: 'bg-[#e6f6ed] text-institutional',
+  reponse_apportee: 'bg-[#e6f6ed] text-institutional',
+  non_retenue: 'bg-gray-100 text-gray-700',
   non_fondee: 'bg-[#fde8e8] text-[#b42318]',
   refusee: 'bg-[#fde8e8] text-[#b42318]',
   double: 'bg-[#e0f5f3] text-[#0f766e]',
@@ -26,6 +31,8 @@ const dots = {
   cloturee: 'bg-gray-500',
   hors_competence: 'bg-gray-500',
   answered: 'bg-institutional',
+  reponse_apportee: 'bg-institutional',
+  non_retenue: 'bg-gray-500',
   non_fondee: 'bg-[#b42318]',
   refusee: 'bg-[#b42318]',
   double: 'bg-[#0d9488]',
@@ -39,8 +46,10 @@ export default function StatusBadge({
   showDot = false,
   className = '',
 }) {
+  const { t } = useLanguage()
   const tone = variants[status] ?? variants.default
   const dot = dots[status] ?? dots.default
+  const texte = t.admin?.statuts?.[status] || label || libelleStatut(status, t)
 
   return (
     <span
@@ -53,7 +62,7 @@ export default function StatusBadge({
       {showDot && (
         <span className={`h-1.5 w-1.5 shrink-0 rounded-full ${dot}`} aria-hidden />
       )}
-      {label}
+      {texte}
     </span>
   )
 }

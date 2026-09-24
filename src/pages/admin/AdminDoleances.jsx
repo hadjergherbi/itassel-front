@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Download, Eye, Inbox, RotateCcw } from 'lucide-react'
+import { Download, Eye, Inbox, MessageSquare, RotateCcw, X } from 'lucide-react'
 import StatusBadge from '../../components/StatusBadge'
 import DataTable from '../../components/admin/DataTable'
 import { ReaffecterDirectModal } from '../../components/admin/ReaffectationPanel'
 import { SelectInput } from '../../components/FormFields'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
-import adminApi, { extractErrors } from '../../lib/adminApi'
+import adminApi from '../../lib/adminApi'
 import api from '../../lib/api'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
@@ -20,28 +20,17 @@ import SearchInput from '../../components/ui/SearchInput'
 import Pagination from '../../components/ui/Pagination'
 import EmptyState from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
+import ExportDoleancesModal from '../../components/admin/ExportDoleancesModal'
+import { useLanguage } from '../../i18n/LanguageContext'
 
-const PERIODES = [
-  { value: '', label: 'Toutes les dates' },
-  { value: '7j', label: '7 derniers jours' },
-  { value: '30j', label: '30 derniers jours' },
-  { value: '3m', label: '3 derniers mois' },
-  { value: 'annee', label: 'Cette année' },
-]
+const PERIODES = ['', '7j', '30j', '3m', 'annee']
 
 function nomServiceUtilisateur(utilisateur) {
   return utilisateur?.service?.nom ?? utilisateur?.service?.nom_service ?? ''
 }
 
-function nomFichierExport() {
-  const d = new Date()
-  const yyyy = d.getFullYear()
-  const mm = String(d.getMonth() + 1).padStart(2, '0')
-  const dd = String(d.getDate()).padStart(2, '0')
-  return `doleances-${yyyy}-${mm}-${dd}.csv`
-}
-
 export default function AdminDoleances() {
+  const { tf } = useLanguage()
   const { utilisateur, estSuperAdmin } = useAdminAuth()
   const toast = useToast()
   const navigate = useNavigate()
@@ -51,7 +40,7 @@ export default function AdminDoleances() {
   const [services, setServices] = useState([])
   const [natures, setNatures] = useState([])
   const [recherche, setRecherche] = useState(params.get('q') ?? '')
-  const [exportBusy, setExportBusy] = useState(false)
+  const [exportOpen, setExportOpen] = useState(false)
   const [exportErreur, setExportErreur] = useState('')
   const [reaffecter, setReaffecter] = useState(null)
 
@@ -61,6 +50,8 @@ export default function AdminDoleances() {
   const periode = params.get('periode') ?? ''
   const q = params.get('q') ?? ''
   const aExaminer = params.get('a_examiner') === '1'
+  const ageMin = params.get('age_min') ?? ''
+  const infoSansReponse = params.get('info_sans_reponse') === '1'
   const reaffectationAttente = params.get('reaffectation') === 'en_attente'
   const sansResponsable = params.get('sans_responsable') === '1'
   const aReclasser = params.get('a_reclasser') === '1'
@@ -82,17 +73,19 @@ export default function AdminDoleances() {
       nature: nature || undefined,
       periode: periode || undefined,
       a_examiner: aExaminer ? 1 : undefined,
+      age_min: ageMin || undefined,
+      info_sans_reponse: infoSansReponse ? 1 : undefined,
       reaffectation: reaffectationAttente ? 'en_attente' : undefined,
       sans_responsable: sansResponsable ? 1 : undefined,
       a_reclasser: aReclasser ? 1 : undefined,
       page,
     }),
-    [statut, service, q, nature, periode, aExaminer, reaffectationAttente, sansResponsable, aReclasser, page],
+    [statut, service, q, nature, periode, aExaminer, ageMin, infoSansReponse, reaffectationAttente, sansResponsable, aReclasser, page],
   )
 
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/doleances', {
     params: queryParams,
-    fallback: 'Impossible de charger les doléances.',
+    fallback: tf('admin.doleances.erreur'),
     fetcher: (p) => endpoints.doleances(p),
   })
 
@@ -134,7 +127,17 @@ export default function AdminDoleances() {
   const lignes = resultat?.data ?? []
 
   const filtresActifs = Boolean(
-    statut || service || q || nature || periode || aExaminer || reaffectationAttente || sansResponsable || aReclasser,
+    statut ||
+      service ||
+      q ||
+      nature ||
+      periode ||
+      aExaminer ||
+      ageMin ||
+      infoSansReponse ||
+      reaffectationAttente ||
+      sansResponsable ||
+      aReclasser,
   )
 
   const reinitialiser = () => {
@@ -142,64 +145,23 @@ export default function AdminDoleances() {
     setParams({})
   }
 
-  const exporter = async () => {
-    if (exportBusy) return
-    setExportBusy(true)
-    setExportErreur('')
-    try {
-      const res = await adminApi.get('/admin/doleances/export', {
-        params: { ...queryParams, page: undefined },
-        responseType: 'blob',
-      })
-      const type = String(res.headers['content-type'] ?? '')
-      if (type.includes('application/json')) {
-        const texte = await res.data.text()
-        const json = JSON.parse(texte)
-        setExportErreur(json.message || "L'export a échoué.")
-        return
-      }
-      const url = URL.createObjectURL(res.data)
-      const lien = document.createElement('a')
-      lien.href = url
-      lien.download = nomFichierExport()
-      document.body.appendChild(lien)
-      lien.click()
-      lien.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
-    } catch (err) {
-      let message = extractErrors(err, "L'export a échoué.").message
-      const blob = err.response?.data
-      if (blob instanceof Blob) {
-        try {
-          const json = JSON.parse(await blob.text())
-          if (json.message) message = json.message
-        } catch {
-          // garder le message axios
-        }
-      }
-      setExportErreur(message)
-    } finally {
-      setExportBusy(false)
-    }
-  }
-
   const serviceTitre = estSuperAdmin
     ? service
-      ? services.find((s) => String(s.id_service) === service)?.nom_service || 'Service'
-      : 'Tous les services'
+      ? services.find((s) => String(s.id_service) === service)?.nom_service || tf('admin.doleances.service')
+      : tf('admin.doleances.tousServices')
     : nomServiceUtilisateur(utilisateur)
 
   const chips = [
-    { value: 'toutes', label: 'Toutes', count: totalCompteurs },
+    { value: 'toutes', label: tf('admin.doleances.toutes'), count: totalCompteurs },
     ...(estSuperAdmin
-      ? [{ value: 'sans_responsable', label: 'Service sans responsable', count: sansResponsableTotal, tone: 'warning' }]
+      ? [{ value: 'sans_responsable', label: tf('admin.doleances.sansResponsable'), count: sansResponsableTotal, tone: 'warning' }]
       : []),
     ...(estSuperAdmin
-      ? [{ value: 'reaffectation', label: 'Demandes de réaffectation', count: reaffectationsAttenteTotal, tone: 'warning' }]
+      ? [{ value: 'reaffectation', label: tf('admin.doleances.demandesReaff'), count: reaffectationsAttenteTotal, tone: 'warning' }]
       : []),
-    { value: 'a_examiner', label: 'Compléments à examiner', count: aExaminerTotal, tone: 'warning' },
+    { value: 'a_examiner', label: tf('admin.doleances.complementsExaminer'), count: aExaminerTotal, tone: 'warning' },
     ...(aReclasserTotal > 0
-      ? [{ value: 'a_reclasser', label: 'À reclasser', count: aReclasserTotal, tone: 'warning' }]
+      ? [{ value: 'a_reclasser', label: tf('admin.doleances.aReclasser'), count: aReclasserTotal, tone: 'warning' }]
       : []),
     ...statuts.map((s) => ({
       value: `statut:${s.id_statut}`,
@@ -239,23 +201,39 @@ export default function AdminDoleances() {
   const colonnes = [
     {
       id: 'reference',
-      header: 'Référence',
-      className: 'font-mono text-xs font-semibold text-institutional',
-      cell: (d) => (
-        <Link to={`/admin/doleances/${d.reference}`} onClick={(e) => e.stopPropagation()} className="hover:underline">
-          {d.reference}
-        </Link>
-      ),
+      header: tf('admin.doleances.colReference'),
+      className: 'ltr-isolate whitespace-nowrap font-mono text-xs font-semibold text-institutional',
+      cell: (d) => {
+        const n = Number(d.nb_notes) || 0
+        const libelle = n > 0 ? tf('admin.notes.nNotes', { n }) : ''
+        return (
+          <span className="inline-flex items-center gap-2">
+            <Link to={`/admin/doleances/${d.reference}`} onClick={(e) => e.stopPropagation()} className="ltr-isolate whitespace-nowrap hover:underline">
+              {d.reference}
+            </Link>
+            {n > 0 && (
+              <span
+                className="inline-flex items-center gap-0.5 text-gray-400"
+                title={libelle}
+                aria-label={libelle}
+              >
+                <MessageSquare className="h-3.5 w-3.5" aria-hidden />
+                <span className="text-xs">{n}</span>
+              </span>
+            )}
+          </span>
+        )
+      },
     },
     {
       id: 'nom',
-      header: 'Nom',
+      header: tf('admin.doleances.colNom'),
       className: 'text-gray-800',
       cell: (d) => [d.prenom, d.nom].filter(Boolean).join(' ') || '—',
     },
     {
       id: 'categorie',
-      header: 'Catégorie',
+      header: tf('admin.doleances.colCategorie'),
       className: 'text-gray-700',
       cell: (d) => d.nature?.libelle ?? '—',
     },
@@ -263,7 +241,7 @@ export default function AdminDoleances() {
       ? [
           {
             id: 'service',
-            header: 'Service',
+            header: tf('admin.doleances.service'),
             className: 'text-gray-700',
             cell: (d) => d.service?.nom_service ?? '—',
           },
@@ -271,28 +249,28 @@ export default function AdminDoleances() {
       : []),
     {
       id: 'date',
-      header: 'Date',
+      header: tf('admin.doleances.colDate'),
       className: 'whitespace-nowrap font-mono text-xs text-gray-600',
       cell: (d) => formatDate(d.date_depot, { withTime: false }),
     },
     {
       id: 'statut',
-      header: 'Statut',
+      header: tf('admin.doleances.colStatut'),
       cell: (d) => (
         <div className="space-y-1">
           <StatusBadge status={statutKey(d.statut)} label={d.statut?.libelle} showDot />
           {d.reaffectation_en_attente && (
-            <p className="text-xs font-medium text-warning-text">Réaffectation demandée</p>
+            <p className="text-xs font-medium text-warning-text">{tf('admin.doleances.reaffDemandee')}</p>
           )}
           {d.complement_a_examiner && (
-            <p className="text-xs font-medium text-warning-text">Complément reçu</p>
+            <p className="text-xs font-medium text-warning-text">{tf('admin.doleances.complementRecu')}</p>
           )}
         </div>
       ),
     },
     {
       id: 'responsable',
-      header: 'Responsable',
+      header: tf('admin.doleances.colResponsable'),
       cell: (d) =>
         d.responsable ? (
           <span className="text-gray-700">
@@ -300,18 +278,18 @@ export default function AdminDoleances() {
           </span>
         ) : (
           <span className="rounded-full bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning-text">
-            Service sans responsable
+            {tf('admin.doleances.sansResponsable')}
           </span>
         ),
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: tf('admin.doleances.colActions'),
       headerClassName: 'min-w-[140px]',
       cell: (d) => (
         <div className="flex items-center justify-end gap-1" onClick={(e) => e.stopPropagation()}>
           <Link to={`/admin/doleances/${d.reference}`}>
-            <IconButton label="Ouvrir">
+            <IconButton label={tf('admin.doleances.ouvrir')}>
               <Eye className="h-4 w-4" />
             </IconButton>
           </Link>
@@ -321,7 +299,7 @@ export default function AdminDoleances() {
               size="sm"
               onClick={() => setReaffecter(d)}
             >
-              Réaffecter
+              {tf('admin.doleances.reaffecter')}
             </Button>
           )}
         </div>
@@ -332,23 +310,48 @@ export default function AdminDoleances() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        title={estSuperAdmin ? 'Toutes les doléances' : 'Doléances'}
+        title={estSuperAdmin ? tf('admin.doleances.titreToutes') : tf('admin.doleances.titre')}
         subtitle={
           estSuperAdmin
-            ? `Vue globale · ${totalAffiche} doléance${totalAffiche === 1 ? '' : 's'}`
-            : `Service ${serviceTitre} · ${totalAffiche} doléance${totalAffiche === 1 ? '' : 's'}`
+            ? tf('admin.doleances.vueGlobale', { n: totalAffiche })
+            : tf('admin.doleances.vueService', { n: totalAffiche, service: serviceTitre })
         }
         actions={
-          <Button variant="secondary" onClick={exporter} loading={exportBusy}>
-            <Download className="h-4 w-4" /> Exporter en CSV
+          <Button variant="secondary" onClick={() => setExportOpen(true)}>
+            <Download className="h-4 w-4" /> {tf('admin.doleances.exporter')}
           </Button>
         }
       />
 
       {exportErreur && (
-        <p className="mb-4 rounded-[8px] border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
+        <p className="mb-4 rounded-[8px] bg-danger-bg px-3 py-2 text-sm text-danger-text" role="alert">
           {exportErreur}
         </p>
+      )}
+
+      {(ageMin || infoSansReponse) && (
+        <div className="mb-3 flex flex-wrap gap-2">
+          {ageMin && (
+            <button
+              type="button"
+              onClick={() => set('age_min', '')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
+            >
+              {tf('admin.doleances.ageMin', { n: ageMin })}
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          )}
+          {infoSansReponse && (
+            <button
+              type="button"
+              onClick={() => set('info_sans_reponse', '')}
+              className="inline-flex items-center gap-1.5 rounded-full border border-gray-300 bg-white px-3 py-1 text-xs font-medium text-gray-700"
+            >
+              {tf('admin.doleances.infoSansReponse')}
+              <X className="h-3 w-3" aria-hidden />
+            </button>
+          )}
+        </div>
       )}
 
       <div className="mb-4">
@@ -360,7 +363,7 @@ export default function AdminDoleances() {
           id="admin-recherche"
           value={recherche}
           onChange={(e) => setRecherche(e.target.value)}
-          placeholder="Référence ou nom"
+          placeholder={tf('admin.doleances.placeholder')}
         />
         {estSuperAdmin && (
           <div className="lg:w-52">
@@ -368,9 +371,9 @@ export default function AdminDoleances() {
               id="admin-service"
               value={service}
               onChange={(e) => set('service', e.target.value)}
-              aria-label="Tous les services"
+              aria-label={tf('admin.doleances.tousServices')}
             >
-              <option value="">Tous les services</option>
+              <option value="">{tf('admin.doleances.tousServices')}</option>
               {services.map((s) => (
                 <option key={s.id_service} value={String(s.id_service)}>
                   {s.nom_service}
@@ -384,9 +387,9 @@ export default function AdminDoleances() {
             id="admin-nature"
             value={nature}
             onChange={(e) => set('nature', e.target.value)}
-            aria-label="Toutes les catégories"
+            aria-label={tf('admin.doleances.toutesCategories')}
           >
-            <option value="">Toutes les catégories</option>
+            <option value="">{tf('admin.doleances.toutesCategories')}</option>
             {natures.map((n) => (
               <option key={n.id_nature} value={String(n.id_nature)}>
                 {n.libelle}
@@ -399,17 +402,17 @@ export default function AdminDoleances() {
             id="admin-periode"
             value={periode}
             onChange={(e) => set('periode', e.target.value)}
-            aria-label="Toutes les dates"
+            aria-label={tf('admin.doleances.periodes.toutes')}
           >
             {PERIODES.map((p) => (
-              <option key={p.value || 'toutes'} value={p.value}>
-                {p.label}
+              <option key={p || 'toutes'} value={p}>
+                {tf(p ? `admin.doleances.periodes.${p}` : 'admin.doleances.periodes.toutes')}
               </option>
             ))}
           </SelectInput>
         </div>
         <Button variant="secondary" onClick={reinitialiser} disabled={!filtresActifs}>
-          <RotateCcw className="h-4 w-4" /> Réinitialiser
+          <RotateCcw className="h-4 w-4" /> {tf('admin.doleances.reinitialiser')}
         </Button>
       </FilterBar>
 
@@ -417,7 +420,7 @@ export default function AdminDoleances() {
         {loadState === 'error' && !data ? (
           <div className="p-8 text-center">
             <p className="mb-4 text-sm text-red-600">{erreur}</p>
-            <Button onClick={reload}>Réessayer</Button>
+            <Button onClick={reload}>{tf('admin.doleances.retry')}</Button>
           </div>
         ) : (
           <DataTable
@@ -431,13 +434,13 @@ export default function AdminDoleances() {
                 icon={Inbox}
                 title={
                   filtresActifs
-                    ? 'Aucune doléance ne correspond à ces critères.'
-                    : 'Aucune doléance pour le moment.'
+                    ? tf('admin.doleances.videFiltres')
+                    : tf('admin.doleances.vide')
                 }
                 action={
                   filtresActifs ? (
                     <Button variant="secondary" onClick={reinitialiser}>
-                      Réinitialiser les filtres
+                      {tf('admin.doleances.reinitialiserFiltres')}
                     </Button>
                   ) : null
                 }
@@ -458,6 +461,8 @@ export default function AdminDoleances() {
           />
         )}
       </div>
+
+      <ExportDoleancesModal open={exportOpen} onClose={() => setExportOpen(false)} />
 
       <ReaffecterDirectModal
         open={Boolean(reaffecter)}

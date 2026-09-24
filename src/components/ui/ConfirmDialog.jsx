@@ -1,16 +1,18 @@
 import Modal from '../admin/Modal'
 import Button from './Button'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 export default function ConfirmDialog({
   open,
   title,
   children,
-  confirmLabel = 'Confirmer',
+  confirmLabel,
   danger = false,
   busy = false,
   onClose,
   onConfirm,
 }) {
+  const { tf } = useLanguage()
   return (
     <Modal
       open={open}
@@ -20,10 +22,10 @@ export default function ConfirmDialog({
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('admin.ui.annuler')}
           </Button>
           <Button variant={danger ? 'danger' : 'primary'} loading={busy} onClick={onConfirm}>
-            {confirmLabel}
+            {confirmLabel || tf('admin.ui.confirmer')}
           </Button>
         </>
       }

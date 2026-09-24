@@ -1,6 +1,8 @@
-import { Download, Paperclip } from 'lucide-react'
+import { Download, Eye } from 'lucide-react'
 import { formatTaille } from '../../../lib/statuts'
-import { telecharger } from './helpers'
+import { useLanguage } from '../../../i18n/LanguageContext'
+import VignettePiece from './VignettePiece'
+import { telecharger, tronquerNomFichier, typeAffiche } from './helpers'
 
 export function Card({ id, title, badge, extra, className = '', children }) {
   return (
@@ -43,26 +45,54 @@ export function Checkbox({ id, checked, onChange, children }) {
   )
 }
 
-export function PieceLigne({ piece, onError }) {
+export function PieceLigne({ piece, onError, onOuvrir, meta }) {
+  const { tf } = useLanguage()
+  const nom = piece.nom_fichier || ''
+  const ouvrir = (el) => onOuvrir?.(piece, el)
+
   return (
-    <li className="flex flex-wrap items-center justify-between gap-3 px-3 py-2.5">
-      <div className="flex min-w-0 items-center gap-2.5">
-        <Paperclip className="h-4 w-4 shrink-0 text-gray-400" aria-hidden />
-        <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-gray-900">{piece.nom_fichier}</p>
-          <p className="text-xs text-gray-500">
-            {String(piece.type ?? '').toUpperCase()}
-            {piece.taille != null ? ` · ${formatTaille(piece.taille)}` : ''}
-          </p>
+    <li>
+      <div
+        className="flex cursor-pointer flex-wrap items-center justify-between gap-3 px-3 py-2.5 transition hover:bg-gray-50"
+        onClick={(e) => ouvrir(e.currentTarget)}
+      >
+        <div className="flex min-w-0 items-center gap-2.5">
+          <VignettePiece piece={piece} />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-gray-900" title={nom}>
+              {tronquerNomFichier(nom)}
+            </p>
+            <p className="text-xs text-gray-500">
+              {meta ?? `${typeAffiche(piece)}${piece.taille != null ? ` · ${formatTaille(piece.taille)}` : ''}`}
+            </p>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-2" onClick={(e) => e.stopPropagation()}>
+          <button
+            type="button"
+            onClick={(e) => ouvrir(e.currentTarget)}
+            className="inline-flex items-center gap-1.5 rounded-[8px] bg-success-bg px-3 py-1.5 text-xs font-medium text-institutional transition hover:bg-[#d8efe3]"
+            aria-label={tf('admin.piecesJointes.ouvrirFichier', { nom })}
+          >
+            <Eye className="h-3.5 w-3.5" aria-hidden />
+            {tf('admin.piecesJointes.ouvrir')}
+          </button>
+          <button
+            type="button"
+            onClick={() =>
+              telecharger(piece, onError, {
+                introuvable: tf('admin.piecesJointes.telechargementIntrouvable'),
+                echec: tf('admin.piecesJointes.telechargementEchec'),
+              })
+            }
+            className="inline-flex items-center gap-1.5 rounded-[8px] border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-institutional hover:text-institutional"
+            aria-label={tf('admin.piecesJointes.telechargerFichier', { nom })}
+          >
+            <Download className="h-3.5 w-3.5" aria-hidden />
+            {tf('admin.piecesJointes.telecharger')}
+          </button>
         </div>
       </div>
-      <button
-        type="button"
-        onClick={() => telecharger(piece, onError)}
-        className="inline-flex items-center gap-1.5 rounded-[8px] border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-institutional hover:text-institutional"
-      >
-        <Download className="h-3.5 w-3.5" aria-hidden /> Télécharger
-      </button>
     </li>
   )
 }

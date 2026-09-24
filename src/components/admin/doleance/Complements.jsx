@@ -1,6 +1,6 @@
 import StatusBadge from '../../StatusBadge'
 import { formatDate, nomComplet } from '../../../lib/statuts'
-import { Card } from './shared'
+import { Card, PieceLigne } from './shared'
 
 const ETAT_COMPLEMENT = {
   en_attente: { label: 'En attente', key: 'information_demandee' },
@@ -9,7 +9,7 @@ const ETAT_COMPLEMENT = {
   annule: { label: 'Annulé', key: 'cloturee' },
 }
 
-export default function Complements({ complements }) {
+export default function Complements({ complements, onError, onOuvrir }) {
   if (!complements?.length) return null
   return (
     <Card title="Compléments d'information">
@@ -45,6 +45,13 @@ export default function Complements({ complements }) {
                   </p>
                   <p className="whitespace-pre-line text-sm text-gray-800">{c.reponse}</p>
                 </div>
+              )}
+              {(c.pieces_jointes ?? []).length > 0 && (
+                <ul className="mt-3 divide-y divide-gray-100 rounded-[8px] border border-gray-200">
+                  {c.pieces_jointes.map((p) => (
+                    <PieceLigne key={p.id_piece} piece={p} onError={onError} onOuvrir={onOuvrir} />
+                  ))}
+                </ul>
               )}
               {c.etat === 'annule' && c.motif_annulation && (
                 <p className="mt-2 text-sm text-gray-700">
