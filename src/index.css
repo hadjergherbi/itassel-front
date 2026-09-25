@@ -66,6 +66,20 @@ body {
   min-height: 100vh;
 }
 
+.scrollbar-menu {
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.25) transparent;
+}
+
+.scrollbar-menu::-webkit-scrollbar {
+  width: 6px;
+}
+
+.scrollbar-menu::-webkit-scrollbar-thumb {
+  background: rgb(255 255 255 / 0.25);
+  border-radius: 999px;
+}
+
 button,
 input,
 textarea,

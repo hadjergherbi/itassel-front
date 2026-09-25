@@ -21,6 +21,7 @@ export const endpoints = {
   services: () => adminApi.get('/admin/services'),
   creerService: (body) => adminApi.post('/admin/services', body),
   modifierService: (id, body) => adminApi.put(`/admin/services/${id}`, body),
+  supprimerService: (id) => adminApi.delete(`/admin/services/${id}`),
   designerResponsable: (idService, idResponsable) =>
     adminApi.put(`/admin/services/${idService}/responsable`, { id_responsable: idResponsable }),
   responsablesPossibles: (idService) =>
@@ -51,8 +52,9 @@ export const endpoints = {
 
   annulerComplement: (id, body) => adminApi.post(`/admin/complements/${id}/annuler`, body),
 
-  logsDashboard: () => adminApi.get('/admin/journaux/tableau-de-bord'),
+  logsDashboard: (params) => adminApi.get('/admin/journaux/tableau-de-bord', { params }),
   journal: (params) => adminApi.get('/admin/journaux', { params }),
+  journalLigne: (id) => adminApi.get(`/admin/journaux/${id}`),
   exportJournal: (params) =>
     adminApi.get('/admin/journaux/export', { params, responseType: 'blob' }),
 

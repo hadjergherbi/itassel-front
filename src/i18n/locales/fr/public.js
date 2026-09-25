@@ -16,8 +16,7 @@ export default {
     "badges": [
       "Service officiel du Ministère",
       "Gratuit",
-      "Données confidentielles",
-      "Réponse sous ~7 jours en moyenne"
+      "Données confidentielles"
     ]
   },
   "quickTrack": {
@@ -28,46 +27,6 @@ export default {
     "submit": "Recevoir un code par email",
     "noFile": "Vous n'avez pas encore déposé de doléance ?",
     "depositNow": "Déposer maintenant"
-  },
-  "domain": {
-    "title": "Mon sujet concerne-t-il ITASSEL ?",
-    "subtitle": "Vérifiez que votre demande relève de l’un des trois domaines ci-dessous. Les litiges purement privés ou hors compétence du Ministère ne sont pas traités ici.",
-    "tabs": {
-      "sport": "Sport",
-      "jeunesse": "Jeunesse",
-      "rh": "Ressources humaines"
-    },
-    "examplesTitle": "Exemples de demandes acceptées",
-    "depositForDomain": "Déposer pour ce domaine",
-    "domains": {
-      "sport": {
-        "title": "Sport",
-        "examples": [
-          "Terrain de sport communal endommagé ou inaccessible",
-          "Demande d’agrément ou de reconnaissance d’une association sportive",
-          "Problème signalé lors d’une compétition organisée sous l’égide du Ministère"
-        ],
-        "warning": "Litige avec un club privé non affilié : contactez directement le club ou sa fédération."
-      },
-      "jeunesse": {
-        "title": "Jeunesse",
-        "examples": [
-          "Maison de jeunes fermée ou infrastructures dégradées",
-          "Activité de jeunesse non organisée malgré une programmation annoncée",
-          "Demande d’information sur un dispositif jeunesse du Ministère"
-        ],
-        "warning": "Litige commercial avec un organisateur privé hors tutelle : contactez l’organisateur directement."
-      },
-      "rh": {
-        "title": "Ressources humaines",
-        "examples": [
-          "Réclamation relative à un concours ou recrutement du secteur",
-          "Demande de suivi d’un dossier administratif RH du Ministère",
-          "Signalement d’une irrégularité dans une procédure interne"
-        ],
-        "warning": "Litige purement privé entre employés hors administration : ce canal ne s’applique pas."
-      }
-    }
   },
   "how": {
     "title": "Comment ça marche",
@@ -86,60 +45,6 @@ export default {
         "title": "Vous êtes informé",
         "text": "Vous recevez la référence, puis les réponses par email, et suivez l’état à tout moment.",
         "badge": "Réponse sous ~7 jours en moyenne"
-      }
-    ]
-  },
-  "stats": {
-    "title": "Chiffres clés",
-    "note": "Données indicatives synchronisées avec le tableau de bord (mise à jour périodique).",
-    "items": [
-      {
-        "value": "288",
-        "label": "doléances reçues depuis avril 2024"
-      },
-      {
-        "value": "186",
-        "label": "doléances traitées (65 %)"
-      },
-      {
-        "value": "~7 j",
-        "label": "délai moyen de réponse"
-      }
-    ]
-  },
-  "faq": {
-    "title": "Questions fréquentes",
-    "categories": {
-      "depot": "Dépôt",
-      "suivi": "Suivi",
-      "delais": "Délais",
-      "confidentialite": "Confidentialité"
-    },
-    "items": [
-      {
-        "category": "depot",
-        "q": "Dois-je créer un compte pour déposer une doléance ?",
-        "a": "Non, le dépôt se fait sans compte. Vous indiquez votre email : c’est par ce canal que vous recevez la référence et les mises à jour."
-      },
-      {
-        "category": "depot",
-        "q": "Puis-je joindre un fichier à ma doléance ?",
-        "a": "Oui. Vous pouvez joindre des pièces justificatives (PDF, images) dans la limite indiquée lors du dépôt."
-      },
-      {
-        "category": "suivi",
-        "q": "Comment suivre l’avancement de ma demande ?",
-        "a": "Utilisez votre référence (ex. ITS-2024-0000) dans « Suivi rapide » ou « Suivre ma demande ». Un code d’accès unique vous est envoyé par email."
-      },
-      {
-        "category": "delais",
-        "q": "Quel est le délai de réponse ?",
-        "a": "La prise en charge intervient en moyenne sous 48 h. Une réponse est généralement apportée sous environ 7 jours, selon la complexité."
-      },
-      {
-        "category": "confidentialite",
-        "q": "Mes données sont-elles confidentielles ?",
-        "a": "Oui. Vos données sont utilisées uniquement pour traiter votre demande et accessibles aux services compétents du Ministère."
       }
     ]
   },

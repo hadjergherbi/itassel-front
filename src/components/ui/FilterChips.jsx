@@ -3,6 +3,7 @@ export default function FilterChips({ items, value, onChange }) {
     <div className="flex flex-wrap gap-2">
       {items.map((item) => {
         const actif = String(item.value) === String(value)
+        const Icone = item.icon
         return (
           <button
             key={String(item.value)}
@@ -19,6 +20,7 @@ export default function FilterChips({ items, value, onChange }) {
                   : 'border-gray-300 bg-white text-gray-700 hover:border-gray-400',
             ].join(' ')}
           >
+            {Icone && <Icone className="h-3.5 w-3.5" aria-hidden />}
             {item.label}
             {item.count != null && <span className="opacity-75">({item.count})</span>}
           </button>

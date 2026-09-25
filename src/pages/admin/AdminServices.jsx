@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Pencil, Plus } from 'lucide-react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { extractErrors } from '../../lib/adminApi'
@@ -15,6 +15,13 @@ import { FieldError, FieldLabel, SelectInput, TextInput } from '../../components
 import DataTable from '../../components/admin/DataTable'
 import EmptyState from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
+import ConfirmDialog from '../../components/ui/ConfirmDialog'
+
+const BLOCAGE_SUPPRESSION = {
+  service_doleances: 'Ce service contient des doléances.',
+  service_utilisateurs: 'Des utilisateurs sont rattachés à ce service.',
+  service_reaffectations: 'Ce service apparaît dans des réaffectations.',
+}
 
 export default function AdminServices() {
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/services', {
@@ -31,6 +38,7 @@ export default function AdminServices() {
   const [errors, setErrors] = useState({})
   const [modalService, setModalService] = useState(null)
   const [nomService, setNomService] = useState('')
+  const [aSupprimer, setASupprimer] = useState(null)
 
   useEffect(() => {
     if (!designation) {
@@ -96,6 +104,25 @@ export default function AdminServices() {
     }
   }
 
+  const supprimer = async () => {
+    if (!aSupprimer || busy) return
+    setBusy(true)
+    try {
+      await endpoints.supprimerService(aSupprimer.id_service)
+      toast.show('success', 'Service supprimé.')
+      if (designation?.id_service === aSupprimer.id_service) setDesignation(null)
+      setASupprimer(null)
+      reload()
+    } catch (err) {
+      const { message } = extractErrors(err)
+      toast.show('error', message)
+      setASupprimer(null)
+      reload()
+    } finally {
+      setBusy(false)
+    }
+  }
+
   const colonnes = [
     { id: 'nom', header: 'Service', cell: (s) => s.nom_service ?? s.nom },
     {
@@ -127,18 +154,46 @@ export default function AdminServices() {
       id: 'actions',
       header: 'Actions',
       cell: (s) => (
-        <button
-          type="button"
-          className="rounded-[8px] p-1.5 text-gray-500 hover:bg-gray-100"
-          aria-label="Modifier"
-          onClick={() => {
-            setDesignation(s)
-            setIdResp(s.responsable?.id_utilisateur ? String(s.responsable.id_utilisateur) : '')
-            setErrors({})
-          }}
-        >
-          <Pencil className="h-4 w-4" />
-        </button>
+        <div className="flex items-center gap-1">
+          <button
+            type="button"
+            className="rounded-[8px] p-1.5 text-gray-500 hover:bg-gray-100"
+            aria-label="Modifier"
+            onClick={() => {
+              setDesignation(s)
+              setIdResp(s.responsable?.id_utilisateur ? String(s.responsable.id_utilisateur) : '')
+              setErrors({})
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="rounded-[8px] px-2 py-1.5 text-xs font-medium text-gray-600 hover:bg-gray-100"
+            onClick={() => {
+              setModalService(s)
+              setNomService(s.nom_service ?? s.nom ?? '')
+              setErrors({})
+            }}
+          >
+            Renommer
+          </button>
+          <button
+            type="button"
+            className={[
+              'rounded-[8px] p-1.5',
+              s.supprimable === false
+                ? 'cursor-not-allowed text-gray-400 opacity-40'
+                : 'text-gray-500 hover:bg-red-50 hover:text-red-600',
+            ].join(' ')}
+            aria-label="Supprimer"
+            title={s.supprimable === false ? (BLOCAGE_SUPPRESSION[s.raison_blocage] ?? s.raison_blocage ?? undefined) : undefined}
+            disabled={s.supprimable === false}
+            onClick={() => setASupprimer(s)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        </div>
       ),
     },
   ]
@@ -194,6 +249,9 @@ export default function AdminServices() {
             loading={loadState === 'loading'}
             emptyState={<EmptyState title="Aucun service." />}
           />
+          <p className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
+            Un service ne peut être supprimé que s&apos;il n&apos;a ni doléance, ni utilisateur rattaché.
+          </p>
         </div>
         {designation && (
           <Card title="Désigner un responsable">
@@ -265,6 +323,18 @@ export default function AdminServices() {
           </p>
         </form>
       </Modal>
+      <ConfirmDialog
+        open={Boolean(aSupprimer)}
+        title="Supprimer le service ?"
+        danger
+        busy={busy}
+        confirmLabel="Supprimer"
+        onClose={() => setASupprimer(null)}
+        onConfirm={supprimer}
+      >
+        Le service « {aSupprimer?.nom_service ?? aSupprimer?.nom} » sera définitivement supprimé. Cette
+        action est irréversible.
+      </ConfirmDialog>
     </div>
   )
 }

@@ -10,7 +10,7 @@ export default function Header() {
 
   const linkClass = ({ isActive }) =>
     [
-      'relative px-1 py-2 text-sm font-medium transition-colors',
+      'relative whitespace-nowrap px-1 py-2 text-sm font-medium transition-colors',
       isActive
         ? 'text-institutional after:absolute after:bottom-0 after:start-0 after:end-0 after:h-0.5 after:rounded-full after:bg-institutional'
         : 'text-gray-600 hover:text-institutional',

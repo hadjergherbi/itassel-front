@@ -14,6 +14,7 @@ import {
   periodeTropLongue,
 } from '../../lib/statuts'
 import { useLanguage } from '../../i18n/LanguageContext'
+import Toggle from './Toggle'
 
 const PRESETS = ['30j', '3m', '6m', 'annee', 'perso']
 
@@ -26,12 +27,13 @@ function slugService(nom) {
     .toLowerCase() || 'service'
 }
 
-function paramsExport({ natures, date_debut, date_fin, format, omettreNatures }) {
+function paramsExport({ natures, date_debut, date_fin, format, omettreNatures, graphiques }) {
   const p = new URLSearchParams()
   if (!omettreNatures) natures.forEach((id) => p.append('natures[]', String(id)))
   if (date_debut) p.append('date_debut', date_debut)
   if (date_fin) p.append('date_fin', date_fin)
   if (format) p.append('format', format)
+  if (format === 'pdf') p.append('graphiques', graphiques ? '1' : '0')
   return p
 }
 
@@ -48,6 +50,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
   const [selection, setSelection] = useState([])
   const [cataloguePret, setCataloguePret] = useState(false)
   const [format, setFormat] = useState('csv')
+  const [graphiques, setGraphiques] = useState(true)
   const [total, setTotal] = useState(null)
   const [apercuBusy, setApercuBusy] = useState(false)
   const [telechargement, setTelechargement] = useState(false)
@@ -61,6 +64,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
     setDateDebut(d.date_debut)
     setDateFin(d.date_fin)
     setFormat('csv')
+    setGraphiques(true)
     setErreurPeriode('')
     setErreurApi('')
     setTotal(null)
@@ -157,7 +161,13 @@ export default function ExportDoleancesModal({ open, onClose }) {
     setErreurApi('')
     try {
       const res = await endpoints.exportDoleances(
-        paramsExport({ natures: selection, date_debut: dateDebut, date_fin: dateFin, format }),
+        paramsExport({
+          natures: selection,
+          date_debut: dateDebut,
+          date_fin: dateFin,
+          format,
+          graphiques,
+        }),
       )
       const type = String(res.headers['content-type'] ?? '')
       if (type.includes('application/json')) {
@@ -358,6 +368,16 @@ export default function ExportDoleancesModal({ open, onClose }) {
               </label>
             ))}
           </div>
+          {format === 'pdf' && (
+            <div className="mt-3 rounded-[8px] border border-gray-200 px-3 py-3">
+              <Toggle
+                id="export-graphiques"
+                checked={graphiques}
+                onChange={setGraphiques}
+                label={tf('admin.export.inclureGraphiques')}
+              />
+            </div>
+          )}
         </div>
 
         <div

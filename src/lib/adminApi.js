@@ -142,7 +142,7 @@ export function extractErrors(error, fallback = "L'opération a échoué. Réess
   let message = data?.message || fallback
   if (!error?.response) message = 'Connexion au serveur impossible. Vérifiez votre connexion.'
   if (error?.response?.status === 429) message = 'Trop de tentatives. Réessayez dans une minute.'
-  return { message, fields }
+  return { message, fields, code: data?.code }
 }
 
 /** Lit un JSON d'erreur Laravel renvoyé dans un blob (export 422). */

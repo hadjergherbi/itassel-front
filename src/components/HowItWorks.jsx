@@ -7,7 +7,7 @@ export default function HowItWorks() {
   const { t } = useLanguage()
 
   return (
-    <section className="border-y border-gray-200/60 bg-page">
+    <section className="border-t border-gray-200/60 bg-page">
       <div className="mx-auto max-w-6xl px-4 py-12 sm:px-6 sm:py-16">
         <h2 className="mb-8 text-center text-2xl font-bold text-gray-900 sm:mb-10 sm:text-3xl">
           {t.how.title}

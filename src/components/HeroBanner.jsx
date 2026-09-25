@@ -1,6 +1,5 @@
 import { Link } from 'react-router-dom'
 import {
-  Clock,
   Lock,
   Plus,
   ShieldCheck,
@@ -9,7 +8,7 @@ import {
 import { useLanguage } from '../i18n/LanguageContext'
 import QuickTrackCard from './QuickTrackCard'
 
-const badgeIcons = [ShieldCheck, CircleCheck, Lock, Clock]
+const badgeIcons = [ShieldCheck, CircleCheck, Lock]
 
 export default function HeroBanner() {
   const { t } = useLanguage()
@@ -31,7 +30,7 @@ export default function HeroBanner() {
           <div className="mb-8 flex flex-wrap gap-3">
             <Link
               to="/deposer"
-              className="inline-flex items-center gap-2 rounded-[8px] bg-white px-4 py-2.5 text-sm font-medium text-institutional transition hover:bg-white/95"
+              className="inline-flex items-center gap-2 whitespace-nowrap rounded-[8px] bg-white px-4 py-2.5 text-sm font-medium text-institutional transition hover:bg-white/95"
             >
               <Plus className="h-4 w-4" aria-hidden />
               {t.hero.ctaDeposit}

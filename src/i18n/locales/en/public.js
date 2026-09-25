@@ -18,7 +18,6 @@ export default {
       'Official Ministry service',
       'Free of charge',
       'Confidential data',
-      'Reply in ~7 days on average',
     ],
   },
   quickTrack: {
@@ -29,50 +28,6 @@ export default {
     submit: 'Receive a code by email',
     noFile: 'You have not submitted a grievance yet?',
     depositNow: 'Submit now',
-  },
-  domain: {
-    title: 'Does my topic fall under ITASSEL?',
-    subtitle:
-      'Check that your request falls under one of the three areas below. Purely private disputes or matters outside the Ministry’s remit are not handled here.',
-    tabs: {
-      sport: 'Sport',
-      jeunesse: 'Youth',
-      rh: 'Human resources',
-    },
-    examplesTitle: 'Examples of accepted requests',
-    depositForDomain: 'Submit for this area',
-    domains: {
-      sport: {
-        title: 'Sport',
-        examples: [
-          'Municipal sports ground damaged or inaccessible',
-          'Application for approval or recognition of a sports association',
-          'Issue reported during a competition organised under the Ministry’s aegis',
-        ],
-        warning:
-          'Dispute with a non-affiliated private club: contact the club or its federation directly.',
-      },
-      jeunesse: {
-        title: 'Youth',
-        examples: [
-          'Youth centre closed or facilities in poor condition',
-          'Youth activity not held despite an announced programme',
-          'Request for information about a Ministry youth scheme',
-        ],
-        warning:
-          'Commercial dispute with a private organiser outside Ministry supervision: contact the organiser directly.',
-      },
-      rh: {
-        title: 'Human resources',
-        examples: [
-          'Complaint about a sector competition or recruitment',
-          'Follow-up request for a Ministry HR administrative file',
-          'Report of an irregularity in an internal procedure',
-        ],
-        warning:
-          'Purely private dispute between employees outside the administration: this channel does not apply.',
-      },
-    },
   },
   how: {
     title: 'How it works',
@@ -91,51 +46,6 @@ export default {
         title: 'You are informed',
         text: 'You receive the reference, then replies by email, and can check the status at any time.',
         badge: 'Reply in ~7 days on average',
-      },
-    ],
-  },
-  stats: {
-    title: 'Key figures',
-    note: 'Indicative data synchronised with the dashboard (updated periodically).',
-    items: [
-      { value: '288', label: 'grievances received since April 2024' },
-      { value: '186', label: 'grievances processed (65%)' },
-      { value: '~7 d', label: 'average response time' },
-    ],
-  },
-  faq: {
-    title: 'Frequently asked questions',
-    categories: {
-      depot: 'Submission',
-      suivi: 'Tracking',
-      delais: 'Timeframes',
-      confidentialite: 'Confidentiality',
-    },
-    items: [
-      {
-        category: 'depot',
-        q: 'Do I need an account to submit a grievance?',
-        a: 'No, you can submit without an account. You provide your email: that is how you receive the reference and updates.',
-      },
-      {
-        category: 'depot',
-        q: 'Can I attach a file to my grievance?',
-        a: 'Yes. You may attach supporting documents (PDF, images) within the limit shown when submitting.',
-      },
-      {
-        category: 'suivi',
-        q: 'How do I track the progress of my request?',
-        a: 'Use your reference (e.g. ITS-2024-0000) in “Quick tracking” or “Track my request”. A one-time access code is sent to you by email.',
-      },
-      {
-        category: 'delais',
-        q: 'What is the response time?',
-        a: 'Cases are typically taken up within 48 hours. A reply is generally given within about 7 days, depending on complexity.',
-      },
-      {
-        category: 'confidentialite',
-        q: 'Is my data confidential?',
-        a: 'Yes. Your data is used only to process your request and is accessible to the competent Ministry departments.',
       },
     ],
   },
