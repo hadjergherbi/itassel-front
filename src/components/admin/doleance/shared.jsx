@@ -21,6 +21,15 @@ export function Card({ id, title, badge, extra, className = '', children }) {
   )
 }
 
+export function BadgePortee({ children }) {
+  if (!children) return null
+  return (
+    <span className="inline-flex items-center rounded-full bg-institutional/10 px-2 py-0.5 text-xs font-medium text-institutional">
+      {children}
+    </span>
+  )
+}
+
 export function Info({ label, children }) {
   return (
     <div>

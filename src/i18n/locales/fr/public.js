@@ -103,24 +103,28 @@ export default {
       ],
       "qualites": [
         {
-          "value": "citoyen",
-          "label": "Citoyen"
-        },
-        {
           "value": "association",
-          "label": "Association"
+          "label": "association"
         },
         {
-          "value": "club",
-          "label": "Club / Fédération"
+          "value": "entreprise_ou_institution",
+          "label": "entreprise ou institution"
         },
         {
-          "value": "agent",
-          "label": "Agent du secteur"
+          "value": "athlete",
+          "label": "athlète"
         },
         {
-          "value": "autre",
-          "label": "Autre"
+          "value": "jeune_homme_jeune_femme",
+          "label": "jeune homme / jeune femme"
+        },
+        {
+          "value": "employe_dans_le_secteur",
+          "label": "Employé dans le secteur"
+        },
+        {
+          "value": "djalia",
+          "label": "djalia"
         }
       ],
       "domaines": [

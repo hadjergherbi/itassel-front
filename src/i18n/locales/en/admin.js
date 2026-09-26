@@ -277,6 +277,8 @@ export default {
     aReclasser: 'To reclassify',
     placeholder: 'Reference or name',
     toutesCategories: 'All types',
+    badgeTousDomaines: 'All domains',
+    badgeToutesNatures: 'All types',
     videFiltres: 'No grievance matches these criteria.',
     vide: 'No grievance for now.',
     colReference: 'Reference',

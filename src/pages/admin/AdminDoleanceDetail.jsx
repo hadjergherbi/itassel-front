@@ -15,11 +15,11 @@ import PiecesJointes from '../../components/admin/doleance/PiecesJointes'
 import Reponses from '../../components/admin/doleance/Reponses'
 import Notifications from '../../components/admin/doleance/Notifications'
 import ReclasserModal from '../../components/admin/doleance/ReclasserModal'
-import { Card, Info } from '../../components/admin/doleance/shared'
+import { BadgePortee, Card, Info } from '../../components/admin/doleance/shared'
 import Button from '../../components/ui/Button'
 import adminApi, { extractErrors } from '../../lib/adminApi'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
-import { nomComplet, statutKey } from '../../lib/statuts'
+import { estTousDomaines, estToutesNatures, nomComplet, statutKey } from '../../lib/statuts'
 import { useFormat, useLanguage } from '../../i18n/LanguageContext'
 import { rassemblerPieces } from '../../components/admin/doleance/helpers'
 import useVisionneuse from '../../components/admin/doleance/useVisionneuse'
@@ -279,8 +279,22 @@ export default function AdminDoleanceDetail() {
         <div className="space-y-6">
           <Card title={tf('admin.detail.contenu')}>
             <div className="mb-5 grid gap-4 sm:grid-cols-4">
-              <Info label={tf('admin.detail.nature')}>{d.nature?.libelle}</Info>
-              <Info label={tf('admin.detail.domaine')}>{d.service?.nom_service}</Info>
+              <Info label={tf('admin.detail.nature')}>
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <span>{d.nature?.libelle}</span>
+                  {estToutesNatures(d.nature) && (
+                    <BadgePortee>{tf('admin.doleances.badgeToutesNatures')}</BadgePortee>
+                  )}
+                </span>
+              </Info>
+              <Info label={tf('admin.detail.domaine')}>
+                <span className="inline-flex flex-wrap items-center gap-1.5">
+                  <span>{d.service?.nom_service}</span>
+                  {estTousDomaines(d.service) && (
+                    <BadgePortee>{tf('admin.doleances.badgeTousDomaines')}</BadgePortee>
+                  )}
+                </span>
+              </Info>
               <Info label={tf('admin.detail.qualite')}>{d.qualite?.libelle}</Info>
               <Info label={tf('admin.detail.wilaya')}>{d.wilaya}</Info>
             </div>

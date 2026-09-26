@@ -10,7 +10,8 @@ import adminApi from '../../lib/adminApi'
 import api from '../../lib/api'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
-import { formatDate, statutKey } from '../../lib/statuts'
+import { estTousDomaines, estToutesNatures, formatDate, statutKey } from '../../lib/statuts'
+import { BadgePortee } from '../../components/admin/doleance/shared'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import IconButton from '../../components/ui/IconButton'
@@ -235,7 +236,17 @@ export default function AdminDoleances() {
       id: 'categorie',
       header: tf('admin.doleances.colCategorie'),
       className: 'text-gray-700',
-      cell: (d) => d.nature?.libelle ?? '—',
+      cell: (d) => (
+        <span className="inline-flex flex-wrap items-center gap-1.5">
+          <span>{d.nature?.libelle ?? '—'}</span>
+          {estToutesNatures(d.nature) && (
+            <BadgePortee>{tf('admin.doleances.badgeToutesNatures')}</BadgePortee>
+          )}
+          {estTousDomaines(d.service) && (
+            <BadgePortee>{tf('admin.doleances.badgeTousDomaines')}</BadgePortee>
+          )}
+        </span>
+      ),
     },
     ...(estSuperAdmin
       ? [
@@ -243,7 +254,12 @@ export default function AdminDoleances() {
             id: 'service',
             header: tf('admin.doleances.service'),
             className: 'text-gray-700',
-            cell: (d) => d.service?.nom_service ?? '—',
+            cell: (d) =>
+              estTousDomaines(d.service) ? (
+                <BadgePortee>{d.service?.nom_service || tf('admin.doleances.badgeTousDomaines')}</BadgePortee>
+              ) : (
+                (d.service?.nom_service ?? '—')
+              ),
           },
         ]
       : []),

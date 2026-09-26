@@ -276,6 +276,43 @@ export function formatTaille(octets) {
   return `${(n / (1024 * 1024)).toFixed(1).replace('.', ',')} Mo`
 }
 
+function normaliserLibelleRef(valeur) {
+  return String(valeur ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/['’]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+export function estToutesNatures(nature) {
+  if (!nature || typeof nature !== 'object') return false
+  if (nature.toutes_natures || nature.transversal || nature.est_transversal) return true
+  const n = normaliserLibelleRef(nature.code ?? nature.slug ?? nature.libelle)
+  return (
+    n === 'toutes natures' ||
+    n === 'toutes les natures' ||
+    n === 'toutes_natures' ||
+    n === 'all types' ||
+    n === 'كل الانواع'
+  )
+}
+
+export function estTousDomaines(service) {
+  if (!service || typeof service !== 'object') return false
+  if (service.tous_domaines || service.transversal || service.est_transversal) return true
+  const n = normaliserLibelleRef(service.code ?? service.slug ?? service.nom_service ?? service.libelle)
+  return (
+    n === 'tous les domaines' ||
+    n === 'tous domaines' ||
+    n === 'tous_les_domaines' ||
+    n === 'tous_domaines' ||
+    n === 'all domains' ||
+    n === 'كل المجالات'
+  )
+}
+
 export function nomComplet(personne) {
   if (!personne) return '—'
   return [personne.prenom, personne.nom].filter(Boolean).join(' ') || '—'

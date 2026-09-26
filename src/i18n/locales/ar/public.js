@@ -103,24 +103,28 @@ export default {
       ],
       "qualites": [
         {
-          "value": "citoyen",
-          "label": "مواطن"
-        },
-        {
           "value": "association",
           "label": "جمعية"
         },
         {
-          "value": "club",
-          "label": "نادي / اتحاد"
+          "value": "entreprise_ou_institution",
+          "label": "مؤسسة أو هيئة"
         },
         {
-          "value": "agent",
-          "label": "عون بالقطاع"
+          "value": "athlete",
+          "label": "رياضي"
         },
         {
-          "value": "autre",
-          "label": "أخرى"
+          "value": "jeune_homme_jeune_femme",
+          "label": "شاب / شابة"
+        },
+        {
+          "value": "employe_dans_le_secteur",
+          "label": "موظف في القطاع"
+        },
+        {
+          "value": "djalia",
+          "label": "الجالية"
         }
       ],
       "domaines": [

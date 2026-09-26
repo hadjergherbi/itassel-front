@@ -277,6 +277,8 @@ export default {
     aReclasser: 'لإعادة التصنيف',
     placeholder: 'المرجع أو الاسم',
     toutesCategories: 'كل الأنواع',
+    badgeTousDomaines: 'كل المجالات',
+    badgeToutesNatures: 'كل الأنواع',
     videFiltres: 'لا توجد عرائض أو شكاوى تطابق هذه المعايير.',
     vide: 'لا توجد عرائض أو شكاوى حالياً.',
     colReference: 'المرجع',

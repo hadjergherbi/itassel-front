@@ -277,6 +277,8 @@ export default {
     aReclasser: 'À reclasser',
     placeholder: 'Référence ou nom',
     toutesCategories: 'Toutes les catégories',
+    badgeTousDomaines: 'Tous les domaines',
+    badgeToutesNatures: 'Toutes natures',
     videFiltres: 'Aucune doléance ne correspond à ces critères.',
     vide: 'Aucune doléance pour le moment.',
     colReference: 'Référence',

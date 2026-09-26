@@ -1,4 +1,9 @@
-/** 58 wilayas d'Algérie */
+/**
+ * 69 wilayas officielles d’Algérie.
+ * 01–48 : wilayas historiques.
+ * 49–58 : découpage administratif de 2019.
+ * 59–69 : réforme territoriale de 2026 (loi n° 26-06).
+ */
 export const WILAYAS = [
   { code: '01', nameFr: 'Adrar', nameAr: 'أدرار' },
   { code: '02', nameFr: 'Chlef', nameAr: 'الشلف' },
@@ -58,4 +63,15 @@ export const WILAYAS = [
   { code: '56', nameFr: 'Djanet', nameAr: 'جانت' },
   { code: '57', nameFr: 'El M\'Ghair', nameAr: 'المغير' },
   { code: '58', nameFr: 'El Meniaa', nameAr: 'المنيعة' },
+  { code: '59', nameFr: 'Aflou', nameAr: 'أفلو' },
+  { code: '60', nameFr: 'Brika', nameAr: 'البريكة' },
+  { code: '61', nameFr: 'Qantara', nameAr: 'القنطرة' },
+  { code: '62', nameFr: 'Bir el Ater', nameAr: 'بئر العاتر' },
+  { code: '63', nameFr: 'Aïcha', nameAr: 'عائشة' },
+  { code: '64', nameFr: 'Kassan', nameAr: 'قسان' },
+  { code: '65', nameFr: 'Aïn Oussara', nameAr: 'عين وسارة' },
+  { code: '66', nameFr: 'Messaad', nameAr: 'مسعد' },
+  { code: '67', nameFr: 'Qasr el Bahari', nameAr: 'قصر البحاري' },
+  { code: '68', nameFr: 'Bou Saâda', nameAr: 'بوسعادة' },
+  { code: '69', nameFr: 'El Abiod Sidi Chiekh', nameAr: 'الأبيض سيدي الشيخ' },
 ]

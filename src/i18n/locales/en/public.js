@@ -91,11 +91,12 @@ export default {
         { value: 'signalement', label: 'Report' },
       ],
       qualites: [
-        { value: 'citoyen', label: 'Citizen' },
-        { value: 'association', label: 'Association' },
-        { value: 'club', label: 'Club / Federation' },
-        { value: 'agent', label: 'Sector staff' },
-        { value: 'autre', label: 'Other' },
+        { value: 'association', label: 'association' },
+        { value: 'entreprise_ou_institution', label: 'company or institution' },
+        { value: 'athlete', label: 'athlete' },
+        { value: 'jeune_homme_jeune_femme', label: 'young man / young woman' },
+        { value: 'employe_dans_le_secteur', label: 'Employee in the sector' },
+        { value: 'djalia', label: 'djalia' },
       ],
       domaines: [
         { value: 'sport', label: 'Sport' },
