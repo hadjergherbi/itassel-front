@@ -110,7 +110,7 @@ export default {
     agrandirMenu: 'Agrandir le menu',
   },
   recherche: {
-    placeholder: 'Rechercher une référence… (ITS-2026-…)',
+    placeholder: 'Rechercher une référence… (ITS-2026-004821)',
     recherche: 'Recherche…',
     vide: 'Aucune doléance trouvée',
   },
@@ -158,7 +158,7 @@ export default {
     nouvelle: 'Nouvelle',
     en_cours: 'En cours',
     information_demandee: 'Information demandée',
-    resolue: 'Traitée',
+    resolue: 'Résolue',
     reponse_apportee: 'Réponse apportée',
     hors_competence: 'Hors compétence',
     non_retenue: 'Non retenue',

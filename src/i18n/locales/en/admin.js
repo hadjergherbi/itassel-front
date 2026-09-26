@@ -110,7 +110,7 @@ export default {
     agrandirMenu: 'Expand menu',
   },
   recherche: {
-    placeholder: 'Search a reference… (ITS-2026-…)',
+    placeholder: 'Search a reference… (ITS-2026-004821)',
     recherche: 'Searching…',
     vide: 'No grievance found',
   },
@@ -161,7 +161,7 @@ export default {
     resolue: 'Resolved',
     reponse_apportee: 'Reply given',
     hors_competence: 'Out of remit',
-    non_retenue: 'Not retained',
+    non_retenue: 'Not upheld',
     double: 'Duplicate',
     non_fondee: 'Unfounded',
     cloturee: 'Closed',

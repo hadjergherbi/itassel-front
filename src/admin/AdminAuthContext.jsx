@@ -104,18 +104,30 @@ export function AdminAuthProvider({ children }) {
     }
   }, [])
 
+  const estSuperAdmin = utilisateur?.role === 'super_admin'
+  const peut = useCallback(
+    (code) => {
+      if (!code) return false
+      if (estSuperAdmin) return true
+      const liste = utilisateur?.permissions ?? utilisateur?.codes_permissions ?? []
+      return Array.isArray(liste) && liste.includes(code)
+    },
+    [estSuperAdmin, utilisateur],
+  )
+
   const value = useMemo(
     () => ({
       utilisateur,
       status,
       expireLe,
-      estSuperAdmin: utilisateur?.role === 'super_admin',
+      estSuperAdmin,
+      peut,
       login,
       logout,
       rafraichirProfil,
       majProfil,
     }),
-    [utilisateur, status, expireLe, login, logout, rafraichirProfil, majProfil],
+    [utilisateur, status, expireLe, estSuperAdmin, peut, login, logout, rafraichirProfil, majProfil],
   )
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>

@@ -12,6 +12,7 @@ import {
   RotateCw,
 } from 'lucide-react'
 import Modal from '../Modal'
+import { useAdminAuth } from '../../../admin/AdminAuthContext'
 import adminApi, { extractBlobErrors } from '../../../lib/adminApi'
 import { formatTaille } from '../../../lib/statuts'
 import { useLanguage } from '../../../i18n/LanguageContext'
@@ -145,6 +146,8 @@ function btnOutil(actif) {
 
 export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose }) {
   const { tf, isRtl } = useLanguage()
+  const { peut } = useAdminAuth()
+  const peutTelecharger = peut('pieces_jointes.telecharger')
   const piece = pieces[index]
   const cache = useRef(new Map())
   const [etat, setEtat] = useState('chargement')
@@ -277,15 +280,17 @@ export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose
       }
       headerActions={
         <>
-          <button
-            type="button"
-            onClick={onTelecharger}
-            className="inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
-            aria-label={tf('admin.piecesJointes.telechargerFichier', { nom })}
-          >
-            <Download className="h-4 w-4" aria-hidden />
-            {tf('admin.piecesJointes.telecharger')}
-          </button>
+          {peutTelecharger && (
+            <button
+              type="button"
+              onClick={onTelecharger}
+              className="inline-flex items-center gap-1.5 rounded-[8px] px-2.5 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-100"
+              aria-label={tf('admin.piecesJointes.telechargerFichier', { nom })}
+            >
+              <Download className="h-4 w-4" aria-hidden />
+              {tf('admin.piecesJointes.telecharger')}
+            </button>
+          )}
           <button
             type="button"
             onClick={ouvrirOnglet}
@@ -326,7 +331,7 @@ export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose
             <EncartErreur
               message={tf('admin.piecesJointes.pdfIndispo')}
               onOnglet={ouvrirOnglet}
-              onTelecharger={onTelecharger}
+              onTelecharger={peutTelecharger ? onTelecharger : undefined}
               tf={tf}
             />
           )
@@ -335,7 +340,7 @@ export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose
         {(etat === 'introuvable' || etat === 'type' || etat === 'reseau') && (
           <EncartErreur
             message={message}
-            onTelecharger={etat === 'type' || etat === 'introuvable' ? onTelecharger : undefined}
+            onTelecharger={peutTelecharger && (etat === 'type' || etat === 'introuvable') ? onTelecharger : undefined}
             onRetry={etat === 'reseau' ? () => setEssai((n) => n + 1) : undefined}
             tf={tf}
           />

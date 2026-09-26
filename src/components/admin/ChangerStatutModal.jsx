@@ -420,7 +420,7 @@ export default function ChangerStatutModal({
               dir="ltr"
               value={referenceInitiale}
               onChange={(e) => setReferenceInitiale(e.target.value)}
-              placeholder="ITS-2026-0000"
+              placeholder="ITS-2026-004821"
               error={errors.reference_initiale}
             />
             <FieldError message={errors.reference_initiale} />

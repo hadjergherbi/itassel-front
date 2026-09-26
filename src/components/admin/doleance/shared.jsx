@@ -1,4 +1,5 @@
 import { Download, Eye } from 'lucide-react'
+import { useAdminAuth } from '../../../admin/AdminAuthContext'
 import { formatTaille } from '../../../lib/statuts'
 import { useLanguage } from '../../../i18n/LanguageContext'
 import VignettePiece from './VignettePiece'
@@ -56,6 +57,8 @@ export function Checkbox({ id, checked, onChange, children }) {
 
 export function PieceLigne({ piece, onError, onOuvrir, meta }) {
   const { tf } = useLanguage()
+  const { peut } = useAdminAuth()
+  const peutTelecharger = peut('pieces_jointes.telecharger')
   const nom = piece.nom_fichier || ''
   const ouvrir = (el) => onOuvrir?.(piece, el)
 
@@ -86,20 +89,22 @@ export function PieceLigne({ piece, onError, onOuvrir, meta }) {
             <Eye className="h-3.5 w-3.5" aria-hidden />
             {tf('admin.piecesJointes.ouvrir')}
           </button>
-          <button
-            type="button"
-            onClick={() =>
-              telecharger(piece, onError, {
-                introuvable: tf('admin.piecesJointes.telechargementIntrouvable'),
-                echec: tf('admin.piecesJointes.telechargementEchec'),
-              })
-            }
-            className="inline-flex items-center gap-1.5 rounded-[8px] border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-institutional hover:text-institutional"
-            aria-label={tf('admin.piecesJointes.telechargerFichier', { nom })}
-          >
-            <Download className="h-3.5 w-3.5" aria-hidden />
-            {tf('admin.piecesJointes.telecharger')}
-          </button>
+          {peutTelecharger && (
+            <button
+              type="button"
+              onClick={() =>
+                telecharger(piece, onError, {
+                  introuvable: tf('admin.piecesJointes.telechargementIntrouvable'),
+                  echec: tf('admin.piecesJointes.telechargementEchec'),
+                })
+              }
+              className="inline-flex items-center gap-1.5 rounded-[8px] border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-institutional hover:text-institutional"
+              aria-label={tf('admin.piecesJointes.telechargerFichier', { nom })}
+            >
+              <Download className="h-3.5 w-3.5" aria-hidden />
+              {tf('admin.piecesJointes.telecharger')}
+            </button>
+          )}
         </div>
       </div>
     </li>

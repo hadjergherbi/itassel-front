@@ -31,7 +31,7 @@
   --color-double-bg: #e0f5f3;
   --color-reclasser: #d97706;
   --color-reclasser-bg: #fff4e5;
-  --font-sans: "IBM Plex Sans", "Roboto", ui-sans-serif, system-ui, sans-serif;
+  --font-sans: "IBM Plex Sans", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
   --radius-brand: 8px;
 }

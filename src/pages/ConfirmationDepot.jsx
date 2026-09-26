@@ -37,7 +37,7 @@ export default function ConfirmationDepot() {
 
   const data = location.state ?? {}
 
-  const reference = data.reference || 'ITS-2026-4821'
+  const reference = data.reference || 'ITS-2026-004821'
   const email = data.email || 'nom@exemple.dz'
   const domaineValue = data.domaine || 'sport'
   const depositedAt = data.depositedAt

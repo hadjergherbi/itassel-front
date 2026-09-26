@@ -52,8 +52,9 @@ const STATUT_AR = {
   nouvelle: 'شكوى جديدة',
   en_cours: 'قيد المعالجة',
   information_demandee: 'معلومات مطلوبة',
-  resolue: 'تمت المعالجة',
+  resolue: 'تم الحل',
   cloturee: 'مغلقة',
+  non_retenue: 'غير مقبولة',
   non_fondee: 'غير مؤسسة',
   double: 'شكوى مكررة',
 }
@@ -185,7 +186,7 @@ export default function SuiviDossier() {
 
       try {
         const res = await api.get('/suivi/dossier', {
-          params: { jeton_session: jetonSession },
+          headers: { 'X-Suivi-Token': jetonSession },
         })
         setDossier(res.data)
         setLoadState('ready')
@@ -256,14 +257,15 @@ export default function SuiviDossier() {
     if (Object.keys(nextErrors).length) return
 
     const body = new FormData()
-    body.append('jeton_session', jetonSession)
     body.append('message', message.trim())
     if (file instanceof File) body.append('piece_jointe', file)
 
     setIsSubmitting(true)
     setNotice(null)
     try {
-      await api.post('/suivi/repondre-complement', body)
+      await api.post('/suivi/repondre-complement', body, {
+        headers: { 'X-Suivi-Token': jetonSession },
+      })
 
       setAnsweredId(pendingComplement.id_complement)
       setMessage('')

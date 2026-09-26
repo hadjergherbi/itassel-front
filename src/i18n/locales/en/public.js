@@ -24,7 +24,7 @@ export default {
     title: 'Quick tracking',
     help: 'Enter your reference. A one-time access code is sent to the email address on your file.',
     label: 'Grievance reference',
-    placeholder: 'ITS-2024-0000',
+    placeholder: 'ITS-2026-004821',
     submit: 'Receive a code by email',
     noFile: 'You have not submitted a grievance yet?',
     depositNow: 'Submit now',
@@ -81,6 +81,7 @@ export default {
       choose: 'Choose',
       objetPlaceholder: 'Summarise your request in one sentence',
       descriptionPlaceholder: 'Describe your request as precisely as possible…',
+      descriptionCompteur: '{n} / 5000',
       dropTitle: 'Drop a file here or',
       browse: 'browse',
       dropHint: 'Optional — PDF, JPG or PNG',
@@ -122,8 +123,10 @@ export default {
     errors: {
       required: 'This field is required.',
       nameInvalid: 'Invalid format. Letters, spaces, hyphens and apostrophes only.',
+      nameHasDigits: 'The name cannot contain digits.',
       emailInvalid: 'Invalid email address.',
-      phoneInvalid: 'Invalid phone number (e.g. 0555 00 00 00).',
+      phoneInvalid: 'Invalid phone number (e.g. 0555 00 00 00 or +213 555 00 00 00).',
+      descriptionTropLongue: 'The description cannot exceed 5000 characters.',
       fileType: 'Format not accepted. Use PDF, JPG or PNG.',
       fileSize: 'File too large (max. 5 MB).',
     },
@@ -155,7 +158,7 @@ export default {
     subtitle:
       'To protect your data, the reference is not enough: a one-time code is sent to the email address given when you submitted.',
     refLabel: 'Grievance reference',
-    refPlaceholder: 'ITS-2026-4821',
+    refPlaceholder: 'ITS-2026-004821',
     submit: 'Receive a code by email',
     validity: 'The code is valid for 10 minutes and can only be used once.',
     mockTitle: 'Mock-up preview.',
@@ -179,7 +182,7 @@ export default {
     verifyOk: 'Code validated (simulation). File access to be connected later.',
     errors: {
       required: 'This field is required.',
-      invalid: 'Invalid reference (e.g. ITS-2026-4821).',
+      invalid: 'Invalid reference (e.g. ITS-2026-004821).',
     },
   },
   dossier: {

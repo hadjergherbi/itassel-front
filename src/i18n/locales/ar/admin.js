@@ -110,7 +110,7 @@ export default {
     agrandirMenu: 'توسيع القائمة',
   },
   recherche: {
-    placeholder: 'البحث عن مرجع… (ITS-2026-…)',
+    placeholder: 'البحث عن مرجع… (ITS-2026-004821)',
     recherche: 'جارٍ البحث…',
     vide: 'لم يُعثر على أي عريضة أو شكوى',
   },
@@ -158,7 +158,7 @@ export default {
     nouvelle: 'جديدة',
     en_cours: 'قيد المعالجة',
     information_demandee: 'معلومة مطلوبة',
-    resolue: 'معالَجة',
+    resolue: 'تم الحل',
     reponse_apportee: 'تم الرد',
     hors_competence: 'خارج الاختصاص',
     non_retenue: 'غير مقبولة',

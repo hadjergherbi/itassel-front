@@ -7,7 +7,7 @@ import { FieldError, FieldLabel, TextInput } from '../components/FormFields'
 import { useLanguage } from '../i18n/LanguageContext'
 import api from '../lib/api'
 
-const REF_RE = /^ITS-\d{4}-\d{4}$/i
+const REF_RE = /^ITS-\d{4}-\d{6}$/i
 const MAX_REQUESTS = 3
 const MAX_ATTEMPTS = 5
 const OTP_LENGTH = 6

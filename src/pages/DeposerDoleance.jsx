@@ -17,6 +17,7 @@ import { useLanguage } from '../i18n/LanguageContext'
 import { WILAYAS } from '../data/wilayas'
 import api from '../lib/api'
 import { endpoints } from '../lib/endpoints'
+import { estTousDomaines, estToutesNatures } from '../lib/statuts'
 
 // Limites alignées sur la base de données (voir migration "doleances") :
 // nom/prenom 60, email 120, objet 200. Le formulaire bloque lui-même les
@@ -25,7 +26,7 @@ import { endpoints } from '../lib/endpoints'
 const NAME_RE =
   /^[\p{L}\p{M}][\p{L}\p{M}\s'\u2019-]{0,59}$/u
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_RE = /^(0|\+213|00213)?[\s.-]?[5-7](?:[\s.-]?\d{2}){4}$/
+const PHONE_RE = /^(\+213|0)([5-7]\d{8}|[2-4]\d{7,8})$/
 
 const emptyForm = {
   nom: '',
@@ -83,6 +84,7 @@ function validateField(name, value, errorsMap) {
     case 'nom':
     case 'prenom':
       if (!trimmed) return errorsMap.required
+      if (/\d/.test(trimmed)) return errorsMap.nameHasDigits
       if (!NAME_RE.test(trimmed)) return errorsMap.nameInvalid
       return ''
     case 'email':
@@ -91,10 +93,8 @@ function validateField(name, value, errorsMap) {
       return ''
     case 'telephone': {
       if (!trimmed) return errorsMap.required
-      const compact = trimmed.replace(/[\s.-]/g, '')
-      if (!PHONE_RE.test(trimmed) && !/^(0|\+213|00213)?[5-7]\d{8}$/.test(compact)) {
-        return errorsMap.phoneInvalid
-      }
+      const compact = String(trimmed).replace(/\s/g, '')
+      if (!PHONE_RE.test(compact)) return errorsMap.phoneInvalid
       return ''
     }
     case 'wilaya':
@@ -102,8 +102,11 @@ function validateField(name, value, errorsMap) {
     case 'qualite':
     case 'domaine':
     case 'objet':
+      if (!trimmed) return errorsMap.required
+      return ''
     case 'description':
       if (!trimmed) return errorsMap.required
+      if (String(trimmed).length > 5000) return errorsMap.descriptionTropLongue
       return ''
     default:
       return ''
@@ -111,7 +114,7 @@ function validateField(name, value, errorsMap) {
 }
 
 export default function DeposerDoleance() {
-  const { t, lang, isRtl } = useLanguage()
+  const { t, tf, lang, isRtl } = useLanguage()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const Arrow = isRtl ? ArrowLeft : ArrowRight
@@ -150,8 +153,8 @@ export default function DeposerDoleance() {
       .then((res) => {
         if (cancelled) return
         const data = res.data ?? {}
-        const services = data.services ?? []
-        const natures = data.natures ?? []
+        const services = (data.services ?? []).filter((s) => !estTousDomaines(s))
+        const natures = (data.natures ?? []).filter((n) => !estToutesNatures(n))
         const qualites = data.qualites ?? []
         setReferentiels({ services, natures, qualites })
 
@@ -547,7 +550,9 @@ export default function DeposerDoleance() {
                       disabled={referentielsLoading || referentielsFailed}
                     >
                       <option value="">{t.deposit.request.choose}</option>
-                      {referentiels.natures.map((o) => (
+                      {referentiels.natures
+                        .filter((o) => !estToutesNatures(o))
+                        .map((o) => (
                         <option key={o.id_nature} value={String(o.id_nature)}>
                           {o.libelle}
                         </option>
@@ -593,7 +598,9 @@ export default function DeposerDoleance() {
                       disabled={referentielsLoading || referentielsFailed}
                     >
                       <option value="">{t.deposit.request.choose}</option>
-                      {referentiels.services.map((o) => (
+                      {referentiels.services
+                        .filter((o) => !estTousDomaines(o))
+                        .map((o) => (
                         <option key={o.id_service} value={String(o.id_service)}>
                           {o.nom_service}
                         </option>
@@ -628,12 +635,16 @@ export default function DeposerDoleance() {
                     id="description"
                     name="description"
                     rows={5}
+                    maxLength={5000}
                     placeholder={t.deposit.request.descriptionPlaceholder}
                     value={form.description}
                     onChange={(e) => setValue('description', e.target.value)}
                     onBlur={() => onBlur('description')}
                     error={errors.description}
                   />
+                  <FieldHelp>
+                    {tf('deposit.request.descriptionCompteur', { n: form.description.length })}
+                  </FieldHelp>
                   <FieldError message={errors.description} />
                 </div>
 

@@ -23,7 +23,7 @@ export default {
     "title": "Suivi rapide",
     "help": "Saisissez votre référence. Un code d'accès unique est envoyé à l'adresse email de votre dossier.",
     "label": "Référence de la doléance",
-    "placeholder": "ITS-2024-0000",
+    "placeholder": "ITS-2026-004821",
     "submit": "Recevoir un code par email",
     "noFile": "Vous n'avez pas encore déposé de doléance ?",
     "depositNow": "Déposer maintenant"
@@ -80,6 +80,7 @@ export default {
       "choose": "Choisir",
       "objetPlaceholder": "Résumez votre demande en une phrase",
       "descriptionPlaceholder": "Décrivez votre demande le plus précisément possible…",
+      "descriptionCompteur": "{n} / 5000",
       "dropTitle": "Glissez un fichier ici ou",
       "browse": "parcourir",
       "dropHint": "Facultatif — PDF, JPG ou PNG",
@@ -160,8 +161,10 @@ export default {
     "errors": {
       "required": "Ce champ est obligatoire.",
       "nameInvalid": "Format invalide. Lettres, espaces, tirets et apostrophes uniquement.",
+      "nameHasDigits": "Le nom ne peut pas contenir de chiffres.",
       "emailInvalid": "Adresse email invalide.",
-      "phoneInvalid": "Numéro de téléphone invalide (ex. 0555 00 00 00).",
+      "phoneInvalid": "Numéro de téléphone invalide (ex. 0555 00 00 00 ou +213 555 00 00 00).",
+      "descriptionTropLongue": "La description ne peut pas dépasser 5000 caractères.",
       "fileType": "Format non accepté. Utilisez PDF, JPG ou PNG.",
       "fileSize": "Fichier trop volumineux (max. 5 Mo)."
     },
@@ -191,7 +194,7 @@ export default {
     "title": "Suivre ma demande",
     "subtitle": "Pour protéger vos données, la référence ne suffit pas : un code à usage unique est envoyé à l'adresse email indiquée lors du dépôt.",
     "refLabel": "Référence de la doléance",
-    "refPlaceholder": "ITS-2026-4821",
+    "refPlaceholder": "ITS-2026-004821",
     "submit": "Recevoir un code par email",
     "validity": "Le code est valable 10 minutes et ne peut être utilisé qu'une fois.",
     "mockTitle": "Aperçu de maquette.",
@@ -213,7 +216,7 @@ export default {
     "verifyOk": "Code validé (simulation). Accès au dossier à brancher prochainement.",
     "errors": {
       "required": "Ce champ est obligatoire.",
-      "invalid": "Référence invalide (ex. ITS-2026-4821)."
+      "invalid": "Référence invalide (ex. ITS-2026-004821)."
     }
   },
   "dossier": {
