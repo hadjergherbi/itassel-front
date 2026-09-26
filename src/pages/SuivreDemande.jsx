@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { Info, Lock, Mail } from 'lucide-react'
+import { Lock, Mail } from 'lucide-react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
 import { FieldError, FieldLabel, TextInput } from '../components/FormFields'
@@ -106,45 +106,6 @@ function OtpInput({ value, onChange, disabled, error }) {
         </div>
       ))}
     </div>
-  )
-}
-
-/**
- * Bandeau réservé au développement (jamais affiché en production).
- * Le vrai code n'est plus connu du navigateur : en attendant l'envoi
- * d'emails réel, il est écrit dans le journal Laravel.
- */
-function DevBanner({ t, onExpire, expireDisabled }) {
-  if (!import.meta.env.DEV) return null
-
-  return (
-    <>
-      <div className="mt-6 rounded-[8px] border border-dashed border-gray-300 bg-white/70 px-4 py-3">
-        <div className="flex items-start gap-2.5">
-          <Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-500" aria-hidden />
-          <p className="text-sm leading-relaxed text-gray-600" dir="ltr">
-            <span className="font-semibold text-gray-800">Mode développement.</span>{' '}
-            Le code à 6 chiffres est écrit dans le fichier{' '}
-            <code className="rounded bg-gray-100 px-1">storage/logs/laravel.log</code>{' '}
-            du projet Laravel (dernière ligne « Code de vérification (TEST) »).
-            Ce bandeau n'apparaît pas en production.
-          </p>
-        </div>
-      </div>
-
-      {onExpire && (
-        <div className="mt-3 flex justify-end">
-          <button
-            type="button"
-            onClick={onExpire}
-            disabled={expireDisabled}
-            className="rounded-[8px] border border-gray-300 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 transition hover:border-gray-400 disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            {t.track.demoExpire}
-          </button>
-        </div>
-      )}
-    </>
   )
 }
 
@@ -439,19 +400,6 @@ export default function SuivreDemande() {
           </form>
         )}
 
-        <DevBanner
-          t={t}
-          onExpire={
-            step === 'verification'
-              ? () => {
-                  setCodeExpired(true)
-                  setCodeError(t.track.codeExpired)
-                  setStatusMsg('')
-                }
-              : undefined
-          }
-          expireDisabled={codeExpired}
-        />
       </main>
 
       <Footer />
