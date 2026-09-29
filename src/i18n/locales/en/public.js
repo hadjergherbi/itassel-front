@@ -34,7 +34,7 @@ export default {
     steps: [
       {
         title: 'You submit',
-        text: 'Enter your details, the relevant area and describe your request. You may attach documents.',
+        text: 'Enter your details, the relevant area and describe your request. If the department needs a document, it will ask you by email and you can attach it from your request tracking page.',
         badge: 'Immediate',
       },
       {
@@ -56,6 +56,25 @@ export default {
   deposit: {
     title: 'Submit a grievance',
     subtitle: 'Fill in the fields below. Fields marked with * are required.',
+    steps: {
+      label: 'Form progress',
+      identification: 'Identification',
+      informations: 'Your details',
+      verification: 'Review',
+    },
+    nin: {
+      etape: 'Step 1 — Identification',
+      title: 'National Identification Number (NIN)',
+      label: 'National Identification Number (NIN)',
+      help: 'The NIN appears on your biometric identity card (18 digits).',
+      placeholder: '000000 000000 000000',
+      compteur: '{n} / 18',
+      continuer: 'Continue',
+      modifier: 'Edit',
+      resumeLabel: 'NIN:',
+      privacy:
+        'Your NIN is used only to verify your identity and is not shared with third parties.',
+    },
     personal: {
       title: 'Personal information',
       nom: 'Last name',
@@ -77,14 +96,10 @@ export default {
       domaine: 'Relevant area',
       objet: 'Subject',
       description: 'Description',
-      attachment: 'Attachment',
       choose: 'Choose',
       objetPlaceholder: 'Summarise your request in one sentence',
       descriptionPlaceholder: 'Describe your request as precisely as possible…',
       descriptionCompteur: '{n} / 5000',
-      dropTitle: 'Drop a file here or',
-      browse: 'browse',
-      dropHint: 'Optional — PDF, JPG or PNG',
       natures: [
         { value: 'reclamation', label: 'Complaint' },
         { value: 'suggestion', label: 'Suggestion' },
@@ -122,13 +137,14 @@ export default {
     submitFailed: 'Sending failed. Check your connection and try again.',
     errors: {
       required: 'This field is required.',
+      ninRequired: 'The NIN is required.',
+      ninLength: 'The NIN must contain exactly 18 digits.',
+      ninInvalid: 'Invalid NIN.',
       nameInvalid: 'Invalid format. Letters, spaces, hyphens and apostrophes only.',
       nameHasDigits: 'The name cannot contain digits.',
       emailInvalid: 'Invalid email address.',
       phoneInvalid: 'Invalid phone number (e.g. 0555 00 00 00 or +213 555 00 00 00).',
       descriptionTropLongue: 'The description cannot exceed 5000 characters.',
-      fileType: 'Format not accepted. Use PDF, JPG or PNG.',
-      fileSize: 'File too large (max. 5 MB).',
     },
     summaryReady: 'Checks passed. Summary before sending (next step).',
   },
@@ -198,6 +214,7 @@ export default {
     attachmentRequiredNote: 'The file is required for this request.',
     responseTitle: 'Your reply',
     messageLabel: 'Message',
+    messageCompteur: '{n} / 2000',
     fileLabelRequired: 'Attachment (required)',
     fileLabelOptional: 'Attachment (optional)',
     noFile: 'No file selected',
@@ -244,6 +261,7 @@ export default {
     },
     errors: {
       message: 'The message is required.',
+      messageTropLong: 'The message cannot exceed 2000 characters.',
       fileRequired: 'An attachment is required for this request.',
       fileType: 'Format not accepted. Use PDF, JPG or PNG.',
       fileSize: 'File too large (max. 5 MB).',
@@ -256,6 +274,9 @@ export default {
     restartTrack: 'Start tracking again',
     loading: 'Loading the file…',
     noComplement: 'No pending request for additional information on this file.',
+    noPending: 'No further information is requested for this file.',
+    plusEnAttente: 'This file is no longer awaiting information. Tracking has been refreshed.',
+    sendFailed: 'Sending failed. Check your connection and try again.',
     missingToken: 'Unable to access the file: missing session. Start tracking again.',
   },
 }

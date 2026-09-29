@@ -33,7 +33,7 @@ export default {
     "steps": [
       {
         "title": "Vous déposez",
-        "text": "Renseignez vos coordonnées, le domaine concerné et décrivez votre demande. Vous pouvez joindre des pièces.",
+        "text": "Renseignez vos coordonnées, le domaine concerné et décrivez votre demande. Si le service a besoin d'un document, il vous le demandera par email et vous pourrez le joindre depuis le suivi de votre demande.",
         "badge": "Immédiat"
       },
       {
@@ -55,6 +55,24 @@ export default {
   "deposit": {
     "title": "Déposer une doléance",
     "subtitle": "Renseignez les champs ci-dessous. Les champs marqués d'un * sont obligatoires.",
+    "steps": {
+      "label": "Progression du formulaire",
+      "identification": "Identification",
+      "informations": "Vos informations",
+      "verification": "Vérification"
+    },
+    "nin": {
+      "etape": "Étape 1 — Identification",
+      "title": "Numéro d'identification national (NIN)",
+      "label": "Numéro d'identification national (NIN)",
+      "help": "Le NIN figure sur votre carte d'identité biométrique (18 chiffres).",
+      "placeholder": "000000 000000 000000",
+      "compteur": "{n} / 18",
+      "continuer": "Continuer",
+      "modifier": "Modifier",
+      "resumeLabel": "NIN :",
+      "privacy": "Votre NIN est utilisé uniquement pour vérifier votre identité et n'est pas communiqué à des tiers."
+    },
     "personal": {
       "title": "Informations personnelles",
       "nom": "Nom",
@@ -76,14 +94,10 @@ export default {
       "domaine": "Domaine concerné",
       "objet": "Objet",
       "description": "Description",
-      "attachment": "Pièce jointe",
       "choose": "Choisir",
       "objetPlaceholder": "Résumez votre demande en une phrase",
       "descriptionPlaceholder": "Décrivez votre demande le plus précisément possible…",
       "descriptionCompteur": "{n} / 5000",
-      "dropTitle": "Glissez un fichier ici ou",
-      "browse": "parcourir",
-      "dropHint": "Facultatif — PDF, JPG ou PNG",
       "natures": [
         {
           "value": "reclamation",
@@ -160,13 +174,14 @@ export default {
     "submitFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
     "errors": {
       "required": "Ce champ est obligatoire.",
+      "ninRequired": "Le NIN est obligatoire.",
+      "ninLength": "Le NIN doit contenir exactement 18 chiffres.",
+      "ninInvalid": "NIN invalide.",
       "nameInvalid": "Format invalide. Lettres, espaces, tirets et apostrophes uniquement.",
       "nameHasDigits": "Le nom ne peut pas contenir de chiffres.",
       "emailInvalid": "Adresse email invalide.",
       "phoneInvalid": "Numéro de téléphone invalide (ex. 0555 00 00 00 ou +213 555 00 00 00).",
-      "descriptionTropLongue": "La description ne peut pas dépasser 5000 caractères.",
-      "fileType": "Format non accepté. Utilisez PDF, JPG ou PNG.",
-      "fileSize": "Fichier trop volumineux (max. 5 Mo)."
+      "descriptionTropLongue": "La description ne peut pas dépasser 5000 caractères."
     },
     "summaryReady": "Vérification réussie. Résumé avant envoi (prochaine étape)."
   },
@@ -232,6 +247,7 @@ export default {
     "attachmentRequiredNote": "Le fichier est obligatoire pour cette demande.",
     "responseTitle": "Votre réponse",
     "messageLabel": "Message",
+    "messageCompteur": "{n} / 2000",
     "fileLabelRequired": "Pièce jointe (obligatoire)",
     "fileLabelOptional": "Pièce jointe (facultative)",
     "noFile": "Aucun fichier sélectionné",
@@ -277,6 +293,7 @@ export default {
     },
     "errors": {
       "message": "Le message est obligatoire.",
+      "messageTropLong": "Le message ne peut pas dépasser 2000 caractères.",
       "fileRequired": "Une pièce jointe est obligatoire pour cette demande.",
       "fileType": "Format non accepté. Utilisez PDF, JPG ou PNG.",
       "fileSize": "Fichier trop volumineux (max. 5 Mo).",
@@ -289,6 +306,9 @@ export default {
     "restartTrack": "Recommencer le suivi",
     "loading": "Chargement du dossier…",
     "noComplement": "Aucune demande de complément en attente pour ce dossier.",
+    "noPending": "Aucune information n'est plus demandée pour ce dossier.",
+    "plusEnAttente": "Ce dossier n'attend plus d'information. Le suivi a été actualisé.",
+    "sendFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
     "missingToken": "Accès au dossier impossible : session manquante. Recommencez le suivi."
   }
 }

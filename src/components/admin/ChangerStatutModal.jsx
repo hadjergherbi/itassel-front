@@ -4,6 +4,7 @@ import StatusBadge from '../StatusBadge'
 import Button from '../ui/Button'
 import {
   FieldError,
+  FieldHelp,
   FieldLabel,
   SelectInput,
   TextArea,
@@ -16,8 +17,12 @@ import {
   natureCode,
   statutKey,
 } from '../../lib/statuts'
+import { useLanguage } from '../../i18n/LanguageContext'
 import Modal from './Modal'
 import Toggle from './Toggle'
+
+const QUESTION_MAX = 1000
+const PIECE_MAX = 200
 
 function emailSuffix(emailEnvoye) {
   if (emailEnvoye === true) return ' Le demandeur a été prévenu par email.'
@@ -36,6 +41,7 @@ export default function ChangerStatutModal({
   onDone,
   onAnnulerComplement,
 }) {
+  const { tf } = useLanguage()
   const cibleInitiale = preset
     ? transitions.find((s) => statutKey(s) === preset)
     : null
@@ -108,6 +114,9 @@ export default function ChangerStatutModal({
         "Un complément reçu n'est pas encore examiné. Les issues de conclusion sont indisponibles."
     }
     if (estInfo && !question.trim()) next.question = 'Écrivez la question à poser au demandeur.'
+    if (estInfo && question.trim().length > QUESTION_MAX) {
+      next.question = tf('admin.changerStatut.questionTropLongue', { max: QUESTION_MAX })
+    }
     if (estInfo && exigerPiece && !descriptionPiece.trim()) {
       next.description_piece = 'Précisez la pièce attendue.'
     }
@@ -128,6 +137,7 @@ export default function ChangerStatutModal({
         message: estHorsCompetence ? justification.trim() : message.trim() || null,
         organisme_competent: estHorsCompetence ? organisme.trim() || null : null,
         question: estInfo ? question.trim() : null,
+        piece_exigee: estInfo ? exigerPiece : false,
         description_piece: estInfo && exigerPiece ? descriptionPiece.trim() : null,
         notifier_demandeur: notifier,
         notifier_responsable: notifierResponsable,
@@ -262,7 +272,7 @@ export default function ChangerStatutModal({
                     aria-label="Choisir un modèle"
                     onChange={(e) => {
                       const m = modelesComplement.find((x) => String(x.id_modele) === e.target.value)
-                      if (m) setQuestion(m.contenu)
+                      if (m) setQuestion(String(m.contenu ?? '').slice(0, QUESTION_MAX))
                     }}
                   >
                     <option value="">Choisir un modèle…</option>
@@ -278,10 +288,17 @@ export default function ChangerStatutModal({
                 id="statut-question"
                 rows={3}
                 className="min-h-[90px]"
+                maxLength={QUESTION_MAX}
                 value={question}
-                onChange={(e) => setQuestion(e.target.value)}
+                onChange={(e) => {
+                  setQuestion(e.target.value.slice(0, QUESTION_MAX))
+                  if (errors.question) setErrors((prev) => ({ ...prev, question: '' }))
+                }}
                 error={errors.question}
               />
+              <FieldHelp>
+                {tf('admin.changerStatut.compteur', { n: question.length, max: QUESTION_MAX })}
+              </FieldHelp>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="inline-flex rounded-full bg-[#e6f6ed] px-2 py-0.5 text-[10px] font-medium text-institutional">
                   Visible du demandeur
@@ -298,26 +315,43 @@ export default function ChangerStatutModal({
                   <Toggle
                     id="exiger-piece"
                     checked={exigerPiece}
-                    onChange={setExigerPiece}
+                    onChange={(v) => {
+                      setExigerPiece(v)
+                      if (!v) {
+                        setDescriptionPiece('')
+                        setErrors((prev) => ({ ...prev, description_piece: '' }))
+                      }
+                    }}
                     disabled={busy}
-                    label="Pièce justificative nécessaire"
-                    hint="Si activé, le citoyen ne pourra pas répondre sans joindre un fichier."
+                    label={tf('admin.changerStatut.exigerPiece')}
+                    hint={tf('admin.changerStatut.exigerPieceHint')}
                   />
                 </div>
               </div>
               {exigerPiece && (
                 <div className="mt-4">
                   <FieldLabel htmlFor="description-piece" required>
-                    Description de la pièce attendue
+                    {tf('admin.changerStatut.descriptionPiece')}
                   </FieldLabel>
                   <TextInput
                     id="description-piece"
-                    maxLength={200}
+                    maxLength={PIECE_MAX}
                     value={descriptionPiece}
-                    onChange={(e) => setDescriptionPiece(e.target.value)}
+                    onChange={(e) => {
+                      setDescriptionPiece(e.target.value.slice(0, PIECE_MAX))
+                      if (errors.description_piece) {
+                        setErrors((prev) => ({ ...prev, description_piece: '' }))
+                      }
+                    }}
                     placeholder="Plan du terrain"
                     error={errors.description_piece}
                   />
+                  <FieldHelp>
+                    {tf('admin.changerStatut.compteur', {
+                      n: descriptionPiece.length,
+                      max: PIECE_MAX,
+                    })}
+                  </FieldHelp>
                   <p className="mt-1.5 text-xs text-gray-500">
                     Affichée au citoyen. Formats et taille : PDF, JPG ou PNG · 5 Mo maximum.
                   </p>

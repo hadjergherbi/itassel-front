@@ -18,10 +18,12 @@ export function TextInput({
   id,
   error,
   className = '',
+  ref,
   ...props
 }) {
   return (
     <input
+      ref={ref}
       id={id}
       className={[
         baseControl,
@@ -77,15 +79,19 @@ export function TextArea({ id, error, className = '', autoSize = false, ref, ...
   )
 }
 
-export function FieldError({ message }) {
+export function FieldError({ message, id }) {
   if (!message) return null
   return (
-    <p className="mt-1.5 text-xs text-red-600" role="alert">
+    <p id={id} className="mt-1.5 text-xs text-red-600" role="alert">
       {message}
     </p>
   )
 }
 
-export function FieldHelp({ children }) {
-  return <p className="mt-1.5 text-xs leading-relaxed text-gray-500">{children}</p>
+export function FieldHelp({ children, id }) {
+  return (
+    <p id={id} className="mt-1.5 text-xs leading-relaxed text-gray-500">
+      {children}
+    </p>
+  )
 }

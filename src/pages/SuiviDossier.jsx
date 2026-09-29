@@ -5,13 +5,14 @@ import Header from '../components/Header'
 import Footer from '../components/Footer'
 import StatusBadge from '../components/StatusBadge'
 import HistoryTimeline from '../components/HistoryTimeline'
-import { FieldError, FieldLabel, TextArea } from '../components/FormFields'
+import { FieldError, FieldHelp, FieldLabel, TextArea } from '../components/FormFields'
 import { useLanguage } from '../i18n/LanguageContext'
 import api from '../lib/api'
 import { statutKey } from '../lib/statuts'
 
 const ACCEPT = ['application/pdf', 'image/jpeg', 'image/png']
 const MAX_BYTES = 5 * 1024 * 1024
+const MESSAGE_MAX = 2000
 
 // Même clé que dans SuivreDemande.jsx.
 const SUIVI_SESSION_KEY = 'itassel_suivi'
@@ -145,7 +146,7 @@ function buildHistory(dossier, lang) {
 /* ------------------------------------------------------------------ */
 
 export default function SuiviDossier() {
-  const { t, lang } = useLanguage()
+  const { t, tf, lang } = useLanguage()
   const location = useLocation()
   const fileRef = useRef(null)
 
@@ -216,7 +217,8 @@ export default function SuiviDossier() {
   }, [dossier])
 
   const attachmentRequired = Boolean(pendingComplement?.piece_exigee)
-  const attachmentName = pendingComplement?.description_piece || t.dossier.attachmentName
+  const attachmentName = pendingComplement?.description_piece || ''
+  const showAttachmentHint = Boolean(attachmentName) || attachmentRequired
   const showForm =
     Boolean(pendingComplement) && pendingComplement.id_complement !== answeredId
 
@@ -250,14 +252,16 @@ export default function SuiviDossier() {
     if (!showForm || isSubmitting) return
 
     const nextErrors = {}
-    if (!message.trim()) nextErrors.message = t.dossier.errors.message
+    const msg = message.trim()
+    if (!msg) nextErrors.message = t.dossier.errors.message
+    else if (msg.length > MESSAGE_MAX) nextErrors.message = t.dossier.errors.messageTropLong
     const fileErr = validateFile(file)
     if (fileErr) nextErrors.file = fileErr
     setErrors(nextErrors)
     if (Object.keys(nextErrors).length) return
 
     const body = new FormData()
-    body.append('message', message.trim())
+    body.append('message', msg)
     if (file instanceof File) body.append('piece_jointe', file)
 
     setIsSubmitting(true)
@@ -291,15 +295,22 @@ export default function SuiviDossier() {
         return
       }
 
-      if (status === 404) {
-        // Plus de complément en attente (déjà répondu, ou annulé par le service).
+      if (status === 404 || status === 409) {
+        setAnsweredId(pendingComplement?.id_complement ?? answeredId)
         setNotice({
           type: 'info',
-          text: tx(
-            'noPending',
-            "Aucune information n'est plus demandée pour ce dossier.",
-            'لم تعد هناك أي معلومات مطلوبة لهذا الملف.',
-          ),
+          text:
+            status === 409
+              ? tx(
+                  'plusEnAttente',
+                  "Ce dossier n'attend plus d'information. Le suivi a été actualisé.",
+                  'لم يعد هذا الملف في انتظار معلومات. تم تحديث المتابعة.',
+                )
+              : tx(
+                  'noPending',
+                  "Aucune information n'est plus demandée pour ce dossier.",
+                  'لم تعد هناك أي معلومات مطلوبة لهذا الملف.',
+                ),
         })
         loadDossier({ silent: true })
         return
@@ -431,18 +442,26 @@ export default function SuiviDossier() {
                           « {pendingComplement.question} »
                         </blockquote>
 
-                        {attachmentRequired && (
+                        {showAttachmentHint && (
                           <div className="rounded-[8px] border border-gray-200 bg-white px-4 py-3">
                             <div className="flex items-start gap-2.5">
                               <Paperclip className="mt-0.5 h-4 w-4 shrink-0 text-[#6b21a8]" aria-hidden />
                               <div>
-                                <p className="text-sm text-gray-800">
-                                  {t.dossier.attachmentExpected}{' '}
-                                  <span className="font-semibold">{attachmentName}</span>
-                                </p>
-                                <p className="mt-1 text-xs text-gray-500">
-                                  {t.dossier.attachmentRequiredNote}
-                                </p>
+                                {attachmentName ? (
+                                  <p className="text-sm text-gray-800">
+                                    {t.dossier.attachmentExpected}{' '}
+                                    <span className="font-semibold">{attachmentName}</span>
+                                  </p>
+                                ) : (
+                                  <p className="text-sm text-gray-800">
+                                    {t.dossier.attachmentRequiredNote}
+                                  </p>
+                                )}
+                                {attachmentRequired && attachmentName && (
+                                  <p className="mt-1 text-xs text-gray-500">
+                                    {t.dossier.attachmentRequiredNote}
+                                  </p>
+                                )}
                               </div>
                             </div>
                           </div>
@@ -475,13 +494,17 @@ export default function SuiviDossier() {
                           <TextArea
                             id="reponse-message"
                             rows={5}
+                            maxLength={MESSAGE_MAX}
                             value={message}
                             onChange={(e) => {
-                              setMessage(e.target.value)
+                              setMessage(e.target.value.slice(0, MESSAGE_MAX))
                               if (errors.message) setErrors((prev) => ({ ...prev, message: '' }))
                             }}
                             error={errors.message}
                           />
+                          <FieldHelp>
+                            {tf('dossier.messageCompteur', { n: message.length })}
+                          </FieldHelp>
                           <FieldError message={errors.message} />
                         </div>
 

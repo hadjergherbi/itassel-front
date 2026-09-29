@@ -205,6 +205,10 @@ export default function AdminDoleanceDetail() {
   const transitions = d.transitions_autorisees?.length
     ? d.transitions_autorisees
     : statuts.filter((s) => s.id_statut !== d.id_statut && s.id_statut !== d.statut?.id_statut)
+  const statutActuel = statutKey(d.statut)
+  const peutDemanderComplement =
+    !ouvert && (statutActuel === 'nouvelle' || statutActuel === 'en_cours')
+  const aInformationDemandee = transitions.some((s) => statutKey(s) === 'information_demandee')
 
   const noticeClass = {
     success: 'border-action/30 bg-[#e6f6ed] text-institutional',
@@ -356,6 +360,8 @@ export default function AdminDoleanceDetail() {
             complements={autres}
             onError={(msg) => onDone('error', msg)}
             onOuvrir={ouvrir}
+            peutDemander={peutDemanderComplement && aInformationDemandee}
+            onDemanderComplement={() => ouvrirStatut('information_demandee')}
           />
           <Reponses reponses={d.reponses} />
           <RepondreDemandeur dossier={d} modeles={modelesReponse} onDone={onDone} />

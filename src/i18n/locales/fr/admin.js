@@ -384,6 +384,15 @@ export default {
     nomPrenom: 'Nom et prénom',
     email: 'Email',
     telephone: 'Téléphone',
+    demanderComplement: 'Demander un complément',
+    aucunComplement: 'Aucun complément pour l’instant.',
+  },
+  changerStatut: {
+    compteur: '{n} / {max}',
+    exigerPiece: 'Exiger une pièce jointe',
+    exigerPieceHint: 'Si activé, le citoyen ne pourra pas répondre sans joindre un fichier.',
+    descriptionPiece: 'Description de la pièce attendue',
+    questionTropLongue: 'La question ne peut pas dépasser {max} caractères.',
   },
   ui: {
     envoi: 'Envoi…',

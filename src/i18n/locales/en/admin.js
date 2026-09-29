@@ -384,6 +384,15 @@ export default {
     nomPrenom: 'Full name',
     email: 'Email',
     telephone: 'Phone',
+    demanderComplement: 'Request additional information',
+    aucunComplement: 'No follow-up requests yet.',
+  },
+  changerStatut: {
+    compteur: '{n} / {max}',
+    exigerPiece: 'Require an attachment',
+    exigerPieceHint: 'If enabled, the citizen cannot reply without attaching a file.',
+    descriptionPiece: 'Description of the expected attachment',
+    questionTropLongue: 'The question cannot exceed {max} characters.',
   },
   ui: {
     envoi: 'Sending…',

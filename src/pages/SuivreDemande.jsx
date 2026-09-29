@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, Mail } from 'lucide-react'
 import Header from '../components/Header'
 import Footer from '../components/Footer'
@@ -113,12 +113,16 @@ export default function SuivreDemande() {
   const { t, lang } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
 
   const [step, setStep] = useState('demande')
-  // Pré-rempli seulement si on arrive depuis l'écran de confirmation.
-  const [reference, setReference] = useState(
-    () => location.state?.reference || '',
-  )
+  // Pré-rempli depuis ?reference= (emails) ou depuis l'écran de confirmation.
+  const [reference, setReference] = useState(() => {
+    const depuisUrl = searchParams.get('reference')
+    if (depuisUrl) return normalizeRef(depuisUrl)
+    if (location.state?.reference) return normalizeRef(String(location.state.reference))
+    return ''
+  })
   const [refError, setRefError] = useState('')
   const [codeRequestCount, setCodeRequestCount] = useState(0)
   const [verifyAttempts, setVerifyAttempts] = useState(0)
@@ -292,7 +296,7 @@ export default function SuivreDemande() {
                 placeholder={t.track.refPlaceholder}
                 value={reference}
                 onChange={(e) => {
-                  setReference(e.target.value)
+                  setReference(normalizeRef(e.target.value))
                   if (refError) setRefError(validateRef(e.target.value))
                 }}
                 onBlur={() => setRefError(validateRef(reference))}

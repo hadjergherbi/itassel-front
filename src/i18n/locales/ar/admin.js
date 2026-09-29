@@ -384,6 +384,15 @@ export default {
     nomPrenom: 'الاسم واللقب',
     email: 'البريد الإلكتروني',
     telephone: 'الهاتف',
+    demanderComplement: 'طلب معلومات إضافية',
+    aucunComplement: 'لا توجد طلبات تكملة حالياً.',
+  },
+  changerStatut: {
+    compteur: '{n} / {max}',
+    exigerPiece: 'إلزام إرفاق مستند',
+    exigerPieceHint: 'إذا فُعّل، لن يتمكن المواطن من الرد دون إرفاق ملف.',
+    descriptionPiece: 'وصف المستند المطلوب',
+    questionTropLongue: 'لا يمكن أن يتجاوز السؤال {max} حرفاً.',
   },
   ui: {
     envoi: 'جارٍ الإرسال…',
