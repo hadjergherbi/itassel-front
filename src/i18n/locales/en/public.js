@@ -58,22 +58,8 @@ export default {
     subtitle: 'Fill in the fields below. Fields marked with * are required.',
     steps: {
       label: 'Form progress',
-      identification: 'Identification',
       informations: 'Your details',
       verification: 'Review',
-    },
-    nin: {
-      etape: 'Step 1 — Identification',
-      title: 'National Identification Number (NIN)',
-      label: 'National Identification Number (NIN)',
-      help: 'The NIN appears on your biometric identity card (18 digits).',
-      placeholder: '000000 000000 000000',
-      compteur: '{n} / 18',
-      continuer: 'Continue',
-      modifier: 'Edit',
-      resumeLabel: 'NIN:',
-      privacy:
-        'Your NIN is used only to verify your identity and is not shared with third parties.',
     },
     personal: {
       title: 'Personal information',
@@ -137,9 +123,6 @@ export default {
     submitFailed: 'Sending failed. Check your connection and try again.',
     errors: {
       required: 'This field is required.',
-      ninRequired: 'The NIN is required.',
-      ninLength: 'The NIN must contain exactly 18 digits.',
-      ninInvalid: 'Invalid NIN.',
       nameInvalid: 'Invalid format. Letters, spaces, hyphens and apostrophes only.',
       nameHasDigits: 'The name cannot contain digits.',
       emailInvalid: 'Invalid email address.',

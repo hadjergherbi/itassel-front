@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+﻿import { useMemo, useState } from 'react'
 import { Check, Info, Mail, Paperclip, User } from 'lucide-react'
 import StatusBadge from '../StatusBadge'
 import Button from '../ui/Button'
@@ -6,7 +6,6 @@ import {
   FieldError,
   FieldHelp,
   FieldLabel,
-  SelectInput,
   TextArea,
   TextInput,
 } from '../FormFields'
@@ -18,17 +17,13 @@ import {
   statutKey,
 } from '../../lib/statuts'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { emailSuffix } from './doleance/helpers'
 import Modal from './Modal'
 import Toggle from './Toggle'
+import ModeleMessageSelect from './ModeleMessageSelect'
 
 const QUESTION_MAX = 1000
 const PIECE_MAX = 200
-
-function emailSuffix(emailEnvoye) {
-  if (emailEnvoye === true) return ' Le demandeur a été prévenu par email.'
-  if (emailEnvoye === false) return " Attention : l'email n'a pas pu être envoyé."
-  return ''
-}
 
 export default function ChangerStatutModal({
   open,
@@ -37,11 +32,13 @@ export default function ChangerStatutModal({
   transitions = [],
   modelesComplement = [],
   modelesReponse = [],
+  modelesState = 'ready',
+  onRetryModeles,
   preset = null,
   onDone,
   onAnnulerComplement,
 }) {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const cibleInitiale = preset
     ? transitions.find((s) => statutKey(s) === preset)
     : null
@@ -108,24 +105,23 @@ export default function ChangerStatutModal({
     if (busy) return
 
     const next = {}
-    if (!idStatut) next.id_statut = 'Choisissez un statut.'
+    if (!idStatut) next.id_statut = tf('admin.changerStatut.choisirStatut')
     if (choisi && statutBloque(choisi)) {
-      next.id_statut =
-        "Un complément reçu n'est pas encore examiné. Les issues de conclusion sont indisponibles."
+      next.id_statut = tf('admin.changerStatut.complementBloque')
     }
-    if (estInfo && !question.trim()) next.question = 'Écrivez la question à poser au demandeur.'
+    if (estInfo && !question.trim()) next.question = tf('admin.changerStatut.questionRequise')
     if (estInfo && question.trim().length > QUESTION_MAX) {
       next.question = tf('admin.changerStatut.questionTropLongue', { max: QUESTION_MAX })
     }
     if (estInfo && exigerPiece && !descriptionPiece.trim()) {
-      next.description_piece = 'Précisez la pièce attendue.'
+      next.description_piece = tf('admin.changerStatut.pieceRequise')
     }
-    if (estReponseTexte && !message.trim()) next.message = 'Rédigez la réponse de conclusion.'
+    if (estReponseTexte && !message.trim()) next.message = tf('admin.changerStatut.messageRequis')
     if (estHorsCompetence && !justification.trim()) {
-      next.justification = 'Indiquez la justification (organisme compétent, motif).'
+      next.justification = tf('admin.changerStatut.justificationRequise')
     }
     if (estDouble && !referenceInitiale.trim()) {
-      next.reference_initiale = 'Indiquez la référence du dossier initial.'
+      next.reference_initiale = tf('admin.changerStatut.refRequise')
     }
     setErrors(next)
     if (Object.keys(next).length) return
@@ -145,11 +141,11 @@ export default function ChangerStatutModal({
       })
       onDone(
         'success',
-        `${res.data?.message || `Statut changé : ${choisi?.libelle ?? ''}.`}${emailSuffix(res.data?.email_envoye)}`,
+        `${res.data?.message || tf('admin.changerStatut.statutChange', { libelle: choisi?.libelle ?? '' })}${emailSuffix(res.data?.email_envoye, tf)}`,
       )
       onClose()
     } catch (err) {
-      const { message: msg, fields } = extractErrors(err)
+      const { message: msg, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!Object.keys(fields).length) onDone('error', msg)
     } finally {
@@ -163,25 +159,25 @@ export default function ChangerStatutModal({
       onClose={onClose}
       busy={busy}
       wide
-      title="Changer le statut"
+      title={tf('admin.changerStatut.titre')}
       subtitle={
         <span className="inline-flex items-center gap-2 whitespace-nowrap">
           <span className="font-mono" dir="ltr">
             {dossier?.reference}
           </span>
           <span className="text-gray-400">·</span>
-          <span>Statut actuel</span>
+          <span>{tf('admin.changerStatut.statutActuel')}</span>
           <StatusBadge status={statutKey(actuel)} label={actuel?.libelle} showDot />
         </span>
       }
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('commun.cancel')}
           </Button>
           <Button type="submit" form="form-changer-statut" loading={busy} disabled={!idStatut}>
             <Check className="h-4 w-4" aria-hidden />
-            Appliquer
+            {tf('admin.changerStatut.appliquer')}
           </Button>
         </>
       }
@@ -189,24 +185,23 @@ export default function ChangerStatutModal({
       <form id="form-changer-statut" onSubmit={submit} noValidate className="space-y-5" dir="ltr">
         {complementAExaminer && (
           <div className="rounded-[8px] border border-warning-border bg-warning-bg px-4 py-3 text-sm leading-relaxed text-warning-text">
-            Un complément reçu n&apos;a pas encore été examiné : examinez-le avant de conclure le
-            dossier.{' '}
+            {tf('admin.changerStatut.complementAExaminer')}{' '}
             <button
               type="button"
               onClick={allerAuComplement}
               className="font-medium underline underline-offset-2"
             >
-              Aller au complément
+              {tf('admin.changerStatut.allerAuComplement')}
             </button>
           </div>
         )}
 
         <div>
           <p className="mb-3 text-sm text-gray-800">
-            <span className="font-medium">Nouveau statut</span>
+            <span className="font-medium">{tf('admin.changerStatut.nouveauStatut')}</span>
             <span className="font-normal">
               {' '}
-              (transitions autorisées depuis « {actuel?.libelle ?? '—'} »)
+              {tf('admin.changerStatut.transitionsDepuis', { libelle: actuel?.libelle ?? '—' })}
             </span>
           </p>
           <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
@@ -240,7 +235,7 @@ export default function ChangerStatutModal({
           </div>
           {actuelKey === 'information_demandee' && (
             <p className="mt-3 text-sm text-gray-700">
-              Pour revenir à « En cours »,{' '}
+              {tf('admin.changerStatut.pourRevenirEnCours')}{' '}
               <button
                 type="button"
                 onClick={() => {
@@ -249,7 +244,7 @@ export default function ChangerStatutModal({
                 }}
                 className="font-medium text-institutional underline underline-offset-2"
               >
-                annulez la demande de complément
+                {tf('admin.changerStatut.annulerComplementLien')}
               </button>
               .
             </p>
@@ -261,28 +256,22 @@ export default function ChangerStatutModal({
           <>
             <div>
               <FieldLabel htmlFor="statut-question" required>
-                Question au demandeur
+                {tf('admin.changerStatut.questionLabel')}
               </FieldLabel>
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-3">
-                <p className="text-sm text-gray-700">Modèle prédéfini (Demande de complément)</p>
-                <div className="min-w-[200px] sm:max-w-xs sm:flex-1">
-                  <SelectInput
-                    id="modele-complement"
-                    value=""
-                    aria-label="Choisir un modèle"
-                    onChange={(e) => {
-                      const m = modelesComplement.find((x) => String(x.id_modele) === e.target.value)
-                      if (m) setQuestion(String(m.contenu ?? '').slice(0, QUESTION_MAX))
-                    }}
-                  >
-                    <option value="">Choisir un modèle…</option>
-                    {modelesComplement.map((m) => (
-                      <option key={m.id_modele} value={String(m.id_modele)}>
-                        {m.titre}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </div>
+              <div className="mb-2">
+                <ModeleMessageSelect
+                  id="modele-complement"
+                  label={tf('admin.changerStatut.modeleComplement')}
+                  modeles={modelesComplement}
+                  loadState={modelesState}
+                  onRetry={onRetryModeles}
+                  valeurActuelle={question}
+                  onAppliquer={(texte) => {
+                    setQuestion(String(texte ?? '').slice(0, QUESTION_MAX))
+                    if (errors.question) setErrors((prev) => ({ ...prev, question: '' }))
+                  }}
+                  disabled={busy}
+                />
               </div>
               <TextArea
                 id="statut-question"
@@ -301,9 +290,9 @@ export default function ChangerStatutModal({
               </FieldHelp>
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <span className="inline-flex rounded-full bg-[#e6f6ed] px-2 py-0.5 text-[10px] font-medium text-institutional">
-                  Visible du demandeur
+                  {tf('admin.changerStatut.visibleDemandeur')}
                 </span>
-                <p className="text-xs text-gray-500">Obligatoire. Le demandeur la lit dans son suivi.</p>
+                <p className="text-xs text-gray-500">{tf('admin.changerStatut.questionAide')}</p>
               </div>
               <FieldError message={errors.question} />
             </div>
@@ -343,7 +332,7 @@ export default function ChangerStatutModal({
                         setErrors((prev) => ({ ...prev, description_piece: '' }))
                       }
                     }}
-                    placeholder="Plan du terrain"
+                    placeholder={tf('admin.changerStatut.placeholderPiece')}
                     error={errors.description_piece}
                   />
                   <FieldHelp>
@@ -353,7 +342,7 @@ export default function ChangerStatutModal({
                     })}
                   </FieldHelp>
                   <p className="mt-1.5 text-xs text-gray-500">
-                    Affichée au citoyen. Formats et taille : PDF, JPG ou PNG · 5 Mo maximum.
+                    {tf('admin.changerStatut.formatsPiece')}
                   </p>
                   <FieldError message={errors.description_piece} />
                 </div>
@@ -362,7 +351,7 @@ export default function ChangerStatutModal({
 
             <div className="rounded-[8px] bg-gray-50 px-4 py-3">
               <p className="mb-2 text-xs font-medium tracking-[0.08em] text-gray-500 uppercase">
-                Aperçu pour le demandeur (à relire avant d&apos;appliquer)
+                {tf('admin.changerStatut.apercuTitre')}
               </p>
               <p className="text-sm leading-relaxed text-gray-800">
                 {question.trim() ? question.trim() : '…'}
@@ -370,7 +359,11 @@ export default function ChangerStatutModal({
               {exigerPiece && (
                 <p className="mt-2 flex items-center gap-1.5 text-sm text-gray-600">
                   <Paperclip className="h-3.5 w-3.5 shrink-0" aria-hidden />
-                  <span>Pièce attendue : {descriptionPiece.trim() || '…'}</span>
+                  <span>
+                    {tf('admin.changerStatut.pieceAttendue', {
+                      piece: descriptionPiece.trim() || '…',
+                    })}
+                  </span>
                 </p>
               )}
             </div>
@@ -379,30 +372,23 @@ export default function ChangerStatutModal({
 
         {estReponseTexte && (
           <div>
-            <div className="mb-1.5 flex flex-wrap items-end justify-between gap-3">
-              <FieldLabel htmlFor="statut-message" required>
-                Réponse de conclusion
-              </FieldLabel>
-              {modelesReponse.length > 0 && (
-                <div className="min-w-[220px] flex-1 sm:max-w-xs">
-                  <SelectInput
-                    id="modele-reponse"
-                    value=""
-                    aria-label="Modèle de réponse de conclusion"
-                    onChange={(e) => {
-                      const m = modelesReponse.find((x) => String(x.id_modele) === e.target.value)
-                      if (m) setMessage(m.contenu)
-                    }}
-                  >
-                    <option value="">Choisir un modèle…</option>
-                    {modelesReponse.map((m) => (
-                      <option key={m.id_modele} value={String(m.id_modele)}>
-                        {m.titre}
-                      </option>
-                    ))}
-                  </SelectInput>
-                </div>
-              )}
+            <FieldLabel htmlFor="statut-message" required>
+              {tf('admin.changerStatut.reponseConclusion')}
+            </FieldLabel>
+            <div className="mb-2">
+              <ModeleMessageSelect
+                id="modele-reponse-statut"
+                label={tf('admin.changerStatut.modeleReponse')}
+                modeles={modelesReponse}
+                loadState={modelesState}
+                onRetry={onRetryModeles}
+                valeurActuelle={message}
+                onAppliquer={(texte) => {
+                  setMessage(texte ?? '')
+                  if (errors.message) setErrors((prev) => ({ ...prev, message: '' }))
+                }}
+                disabled={busy}
+              />
             </div>
             <TextArea
               id="statut-message"
@@ -420,7 +406,7 @@ export default function ChangerStatutModal({
           <div className="space-y-3">
             <div>
               <FieldLabel htmlFor="statut-justification" required>
-                Justification
+                {tf('admin.changerStatut.justification')}
               </FieldLabel>
               <TextArea
                 id="statut-justification"
@@ -433,12 +419,12 @@ export default function ChangerStatutModal({
               <FieldError message={errors.justification} />
             </div>
             <div>
-              <FieldLabel htmlFor="statut-organisme">Organisme compétent (facultatif)</FieldLabel>
+              <FieldLabel htmlFor="statut-organisme">{tf('admin.changerStatut.organisme')}</FieldLabel>
               <TextInput
                 id="statut-organisme"
                 value={organisme}
                 onChange={(e) => setOrganisme(e.target.value)}
-                placeholder="Nom de l'organisme"
+                placeholder={tf('admin.changerStatut.organismePlaceholder')}
               />
             </div>
           </div>
@@ -447,7 +433,7 @@ export default function ChangerStatutModal({
         {estDouble && (
           <div>
             <FieldLabel htmlFor="ref-initiale" required>
-              Référence du dossier initial
+              {tf('admin.changerStatut.refInitiale')}
             </FieldLabel>
             <TextInput
               id="ref-initiale"
@@ -470,11 +456,11 @@ export default function ChangerStatutModal({
                 checked={notifier}
                 onChange={setNotifierDemandeur}
                 disabled={busy || estInfo}
-                label="Notifier le demandeur par email"
+                label={tf('admin.changerStatut.notifierDemandeur')}
                 hint={
                   estInfo
-                    ? 'Automatique : le demandeur doit être informé de la question.'
-                    : 'Le demandeur reçoit un email en plus de la mise à jour de son suivi.'
+                    ? tf('admin.changerStatut.notifierDemandeurHintInfo')
+                    : tf('admin.changerStatut.notifierDemandeurHint')
                 }
               />
             </div>
@@ -487,8 +473,8 @@ export default function ChangerStatutModal({
                 checked={notifierResponsable}
                 onChange={setNotifierResponsable}
                 disabled={busy}
-                label="Notifier le responsable du dossier"
-                hint="Email interne au responsable du service, jamais au demandeur"
+                label={tf('admin.changerStatut.notifierResponsable')}
+                hint={tf('admin.changerStatut.notifierResponsableHint')}
               />
             </div>
           </div>
@@ -496,14 +482,7 @@ export default function ChangerStatutModal({
 
         <div className="flex items-start gap-3 rounded-[8px] bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">
           <Info className="mt-0.5 h-4 w-4 shrink-0 text-gray-400" aria-hidden />
-          <p>
-            Rien n&apos;est envoyé avant « Appliquer ».{' '}
-            <strong>Visibilité et email sont deux mécanismes distincts</strong> : la question, la
-            réponse de conclusion et la justification sont toujours visibles dans le suivi du
-            demandeur (non modifiable) ; l&apos;email n&apos;est qu&apos;une notification en plus. Un
-            seul email part au demandeur par opération ; si l&apos;envoi échoue, le message reste
-            visible et l&apos;action reste enregistrée.
-          </p>
+          <p>{tf('admin.changerStatut.infoVisibilite')}</p>
         </div>
       </form>
     </Modal>

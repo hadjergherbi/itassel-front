@@ -1,8 +1,9 @@
 import adminApi, { extractBlobErrors } from '../../../lib/adminApi'
 
-export function emailSuffix(emailEnvoye) {
-  if (emailEnvoye === true) return ' Le demandeur a été prévenu par email.'
-  if (emailEnvoye === false) return " Attention : l'email n'a pas pu être envoyé."
+export function emailSuffix(emailEnvoye, tf) {
+  if (!tf) return ''
+  if (emailEnvoye === true) return tf('admin.emailSuffix.ok')
+  if (emailEnvoye === false) return tf('admin.emailSuffix.echec')
   return ''
 }
 
@@ -62,7 +63,7 @@ export function rassemblerPieces(dossier) {
   return [...vus.values()]
 }
 
-export async function telecharger(piece, onError, messages = {}) {
+export async function telecharger(piece, onError, messages = {}, lang = 'fr') {
   try {
     const res = await adminApi.get(`/admin/pieces-jointes/${piece.id_piece}/telecharger`, {
       responseType: 'blob',
@@ -79,8 +80,9 @@ export async function telecharger(piece, onError, messages = {}) {
     const { message } = await extractBlobErrors(
       err,
       err.response?.status === 404
-        ? (messages.introuvable ?? 'Fichier introuvable sur le serveur.')
-        : (messages.echec ?? 'Le téléchargement a échoué.'),
+        ? (messages.introuvable ?? messages.echec)
+        : (messages.echec ?? messages.introuvable),
+      lang,
     )
     onError?.(message)
   }

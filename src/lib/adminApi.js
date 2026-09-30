@@ -130,34 +130,40 @@ adminApi.interceptors.response.use(
   },
 )
 
+import { traduireChampsApi, traduireMessageApi } from './erreursApi'
+
 /** Extrait les erreurs de validation Laravel : { message, fields: { champ: 'texte' } } */
-export function extractErrors(error, fallback = "L'opération a échoué. Réessayez.") {
+export function extractErrors(error, fallback = "L'opération a échoué. Réessayez.", lang = 'fr') {
   const data = error?.response?.data
-  const fields = {}
+  const fieldsBruts = {}
   if (data?.errors && typeof data.errors === 'object') {
     Object.entries(data.errors).forEach(([key, value]) => {
-      fields[key] = Array.isArray(value) ? value[0] : String(value)
+      fieldsBruts[key] = Array.isArray(value) ? value[0] : String(value)
     })
   }
   let message = data?.message || fallback
   if (!error?.response) message = 'Connexion au serveur impossible. Vérifiez votre connexion.'
   if (error?.response?.status === 429) message = 'Trop de tentatives. Réessayez dans une minute.'
-  return { message, fields, code: data?.code }
+  return {
+    message: traduireMessageApi(message, lang, fallback),
+    fields: traduireChampsApi(fieldsBruts, lang),
+    code: data?.code,
+  }
 }
 
 /** Lit un JSON d'erreur Laravel renvoyé dans un blob (export 422). */
-export async function extractBlobErrors(error, fallback = "L'opération a échoué. Réessayez.") {
+export async function extractBlobErrors(error, fallback = "L'opération a échoué. Réessayez.", lang = 'fr') {
   const blob = error?.response?.data
   if (blob instanceof Blob) {
     try {
       const json = JSON.parse(await blob.text())
       const fake = { response: { status: error.response?.status, data: json } }
-      return extractErrors(fake, fallback)
+      return extractErrors(fake, fallback, lang)
     } catch {
       // blob non JSON
     }
   }
-  return extractErrors(error, fallback)
+  return extractErrors(error, fallback, lang)
 }
 
 export function nomDepuisDisposition(header, fallback) {

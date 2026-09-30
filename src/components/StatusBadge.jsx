@@ -1,4 +1,5 @@
 import { useLanguage } from '../i18n/LanguageContext'
+import { libelleTraduit } from '../lib/libelles'
 import { libelleStatut } from '../lib/statuts'
 
 // Couleurs des 7 statuts (cahier de refonte UX, §3) :
@@ -46,10 +47,13 @@ export default function StatusBadge({
   showDot = false,
   className = '',
 }) {
-  const { t } = useLanguage()
+  const { t, lang } = useLanguage()
   const tone = variants[status] ?? variants.default
   const dot = dots[status] ?? dots.default
-  const texte = t.admin?.statuts?.[status] || label || libelleStatut(status, t)
+  const texte =
+    t.admin?.statuts?.[status] ||
+    (label ? libelleTraduit('statuts', label, lang) : null) ||
+    libelleStatut(status, t)
 
   return (
     <span

@@ -17,48 +17,45 @@ const DOT = {
   default: 'bg-gray-400',
 }
 
-const TITRES = {
-  depot: 'Nouvelle doléance',
-  complement_demande: 'Information demandée',
-  complement_recu: 'Complément reçu',
-  complement_examine: 'Complément examiné',
-  complement_annule: 'Demande de complément annulée',
-  complement_annule_motif: "Motif de l'annulation",
-  reponse: 'Réponse publiée',
-  reaffectation_demande: 'Demande de réaffectation · En attente',
-  reaffectation_annulee: 'Réaffectation annulée',
-  reaffectation_refusee: 'Réaffectation refusée',
-  reaffectation: 'Dossier réaffecté',
-  reaffectation_sans_suite: 'Réaffectation sans suite',
-  affectation: 'Dossier affecté',
+const TITRE_CLES = {
+  depot: 'depot',
+  complement_demande: 'complementDemande',
+  complement_recu: 'complementRecu',
+  complement_examine: 'complementExamine',
+  complement_annule: 'complementAnnule',
+  complement_annule_motif: 'complementAnnuleMotif',
+  reponse: 'reponse',
+  reaffectation_demande: 'reaffectationDemande',
+  reaffectation_annulee: 'reaffectationAnnulee',
+  reaffectation_refusee: 'reaffectationRefusee',
+  reaffectation: 'reaffectation',
+  reaffectation_sans_suite: 'reaffectationSansSuite',
+  affectation: 'affectation',
 }
 
-const CIBLE = {
-  demandeur: 'au demandeur',
-  super_admin: 'au Super Admin',
-  responsable: 'au responsable',
-}
-
-function titreEvenement(h) {
+function titreEvenement(h, tf) {
   if (h.type_evenement === 'changement_statut') {
     const avant = h.statut_avant?.libelle
     const apres = h.statut_apres?.libelle
     if (avant && apres) return `${avant} → ${apres}`
-    return apres || 'Changement de statut'
+    return apres || tf('admin.historique.changementStatut')
   }
   if (h.type_evenement === 'reaffectation_demande') {
     const service = h.service_propose?.nom_service
     return service
-      ? `Demande de réaffectation → ${service} · En attente`
-      : TITRES.reaffectation_demande
+      ? tf('admin.historique.reaffectationDemandeVers', { service })
+      : tf('admin.historique.reaffectationDemande')
   }
   if (h.type_evenement === 'reaffectation') {
     const titre = String(h.detail ?? '').split('\n')[0]?.trim()
     if (titre) return titre
     const service = h.service_destination?.nom_service
-    return service ? `Réaffectation → ${service}` : TITRES.reaffectation
+    return service
+      ? tf('admin.historique.reaffectationVers', { service })
+      : tf('admin.historique.reaffectation')
   }
-  return TITRES[h.type_evenement] ?? h.type_evenement
+  const cle = TITRE_CLES[h.type_evenement]
+  return cle ? tf(`admin.historique.${cle}`) : h.type_evenement
 }
 
 function lignesReaffectation(detail) {
@@ -91,28 +88,35 @@ function couleurPoint(h) {
   return 'default'
 }
 
-function auteurEvenement(h, demandeur) {
+function auteurEvenement(h, demandeur, tf) {
   if (h.type_evenement === 'depot' || h.type_evenement === 'complement_recu') {
     const nom = nomComplet(demandeur)
-    return nom !== '—' ? `${nom} (demandeur)` : 'Demandeur'
+    return nom !== '—'
+      ? tf('admin.historique.auteurDemandeur', { nom })
+      : tf('admin.historique.demandeur')
   }
   if (h.utilisateur) return nomComplet(h.utilisateur)
-  return 'Système'
+  return tf('admin.historique.systeme')
 }
 
 function LigneNotification({ notification, typeEvenement, serviceResponsable, onRenvoi }) {
+  const { tf } = useLanguage()
   const [busy, setBusy] = useState(false)
   const cible =
     notification.destinataire_type === 'responsable'
       ? serviceResponsable
-        ? `au responsable ${serviceResponsable}`
-        : 'au responsable'
-      : CIBLE[notification.destinataire_type] ?? ''
+        ? tf('admin.historique.cibleResponsableService', { service: serviceResponsable })
+        : tf('admin.historique.cibleResponsable')
+      : notification.destinataire_type === 'demandeur'
+        ? tf('admin.historique.cibleDemandeur')
+        : notification.destinataire_type === 'super_admin'
+          ? tf('admin.historique.cibleSuperAdmin')
+          : ''
 
   if (notification.etat_envoi === 'transmis') {
     return (
       <p className="text-xs font-medium text-institutional">
-        Email transmis {cible}
+        {tf('admin.historique.emailTransmis', { cible })}
       </p>
     )
   }
@@ -129,8 +133,8 @@ function LigneNotification({ notification, typeEvenement, serviceResponsable, on
 
   const prefixe =
     typeEvenement === 'changement_statut'
-      ? 'Statut enregistré, email non transmis'
-      : 'Email non transmis'
+      ? tf('admin.historique.statutEnregistreEmailNonTransmis')
+      : tf('admin.historique.emailNonTransmis')
 
   return (
     <p className="text-xs font-medium text-[#b42318]">
@@ -142,14 +146,14 @@ function LigneNotification({ notification, typeEvenement, serviceResponsable, on
         disabled={busy}
         className="underline underline-offset-2 disabled:opacity-60"
       >
-        {busy ? 'Envoi…' : 'Renvoyer'}
+        {busy ? tf('admin.ui.envoi') : tf('admin.historique.renvoyer')}
       </button>
     </p>
   )
 }
 
 export default function AdminHistoryTimeline({ historique = [], notesInternes = [], demandeur, onDone }) {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const [afficherNotes, setAfficherNotes] = useState(false)
 
   const items = useMemo(() => {
@@ -171,20 +175,20 @@ export default function AdminHistoryTimeline({ historique = [], notesInternes = 
   const renvoyer = async (notification) => {
     try {
       const res = await adminApi.post(`/admin/notifications/${notification.id_notification}/renvoyer`)
-      onDone('success', res.data?.message || 'Email renvoyé.')
+      onDone('success', res.data?.message || tf('admin.historique.emailRenvoye'))
     } catch (err) {
       const code = err.response?.data?.code
-      const { message } = extractErrors(err, "Le renvoi de l'email a échoué.")
+      const { message } = extractErrors(err, tf('admin.historique.renvoiEchec'), lang)
       onDone(
         'error',
-        code === 'deja_transmis' ? message || 'Cet email a déjà été transmis.' : message,
+        code === 'deja_transmis' ? message || tf('admin.historique.dejaTransmis') : message,
       )
     }
   }
 
   return (
     <aside className="rounded-[8px] border border-gray-200 bg-white p-5 shadow-sm lg:sticky lg:top-24">
-      <h2 className="mb-4 text-base font-bold text-gray-900">Historique</h2>
+      <h2 className="mb-4 text-base font-bold text-gray-900">{tf('admin.historique.titre')}</h2>
       <div className="mb-5 flex items-center justify-between gap-3">
         <label htmlFor="afficher-notes-internes" className="text-sm text-gray-700">
           {tf('admin.notes.afficherDansHistorique')}
@@ -210,7 +214,7 @@ export default function AdminHistoryTimeline({ historique = [], notesInternes = 
         </button>
       </div>
       {items.length === 0 ? (
-        <p className="text-sm text-gray-500">Aucun événement pour le moment.</p>
+        <p className="text-sm text-gray-500">{tf('admin.historique.vide')}</p>
       ) : (
         <ol className="relative space-y-5 border-s border-gray-200 ps-5">
           {items.map((h) => {
@@ -251,14 +255,14 @@ export default function AdminHistoryTimeline({ historique = [], notesInternes = 
                   aria-hidden
                 />
                 <div className="mb-1 flex flex-wrap items-center gap-2">
-                  <p className="text-sm font-semibold text-gray-900">{titreEvenement(h)}</p>
+                  <p className="text-sm font-semibold text-gray-900">{titreEvenement(h, tf)}</p>
                   {h.visible_demandeur ? (
                     <span className="inline-flex rounded-full bg-[#e6f6ed] px-2 py-0.5 text-[10px] font-medium text-institutional">
-                      Visible du demandeur
+                      {tf('admin.historique.visibleDemandeur')}
                     </span>
                   ) : (
                     <span className="inline-flex rounded-full bg-[#fff4e5] px-2 py-0.5 text-[10px] font-medium text-[#8a5a00]">
-                      Interne
+                      {tf('admin.historique.interne')}
                     </span>
                   )}
                 </div>
@@ -275,11 +279,11 @@ export default function AdminHistoryTimeline({ historique = [], notesInternes = 
                   <p className="text-xs leading-relaxed text-gray-600">« {h.detail} »</p>
                 ) : null}
                 <p className="mt-1 text-xs text-gray-400">
-                  {auteurEvenement(h, demandeur)} · {formatDate(h.date_evenement)}
+                  {auteurEvenement(h, demandeur, tf)} · {formatDate(h.date_evenement)}
                 </p>
                 <div className="mt-1.5 space-y-0.5">
                   {notifs.length === 0 ? (
-                    <p className="text-xs text-gray-400">Aucune notification</p>
+                    <p className="text-xs text-gray-400">{tf('admin.historique.aucuneNotification')}</p>
                   ) : (
                     notifs.map((n) => (
                       <LigneNotification

@@ -1,43 +1,19 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 import { Mail } from 'lucide-react'
 import Modal from '../Modal'
 import { FieldError, FieldLabel, TextArea } from '../../FormFields'
 import adminApi, { extractErrors } from '../../../lib/adminApi'
 import { nomComplet, statutKey } from '../../../lib/statuts'
 import StatusBadge from '../../StatusBadge'
+import { useLanguage, useFormat } from '../../../i18n/LanguageContext'
+import { emailSuffix } from './helpers'
 
 const MAX_MOTIF = 1000
 
-const MESSAGES_409 = {
-  deja_repondu:
-    'Le citoyen a déjà répondu : la demande ne peut plus être annulée. Consultez et examinez sa réponse.',
-  deja_annule: 'Cette demande a déjà été annulée.',
-  etat_invalide: "Cette demande n'est plus en cours.",
-}
-
-function formatDateHeure(iso) {
-  if (!iso) return '—'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  const jour = new Intl.DateTimeFormat('fr-FR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-  }).format(date)
-  const heure = new Intl.DateTimeFormat('fr-FR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false,
-  })
-    .format(date)
-    .replace(/\u202f/g, ' ')
-  return `${jour} · ${heure}`
-}
-
-function suffixeEmail(emailEnvoye) {
-  if (emailEnvoye === true) return ' Le demandeur a été prévenu par email.'
-  if (emailEnvoye === false) return " Attention : l'email n'a pas pu être envoyé."
-  return ''
+const CODES_409 = {
+  deja_repondu: 'admin.annulerComplement.dejaRepondu',
+  deja_annule: 'admin.annulerComplement.dejaAnnule',
+  etat_invalide: 'admin.annulerComplement.etatInvalide',
 }
 
 export default function AnnulerComplementModal({
@@ -48,6 +24,8 @@ export default function AnnulerComplementModal({
   onDone,
   onReaffecte,
 }) {
+  const { tf, lang } = useLanguage()
+  const { formatDateHeure } = useFormat()
   const [motif, setMotif] = useState('')
   const [errors, setErrors] = useState({})
   const [formError, setFormError] = useState('')
@@ -71,7 +49,7 @@ export default function AnnulerComplementModal({
     if (busy) return
     setFormError('')
     if (!motif.trim()) {
-      setErrors({ motif: "Indiquez le motif de l'annulation." })
+      setErrors({ motif: tf('admin.annulerComplement.motifRequis') })
       return
     }
     setErrors({})
@@ -84,12 +62,12 @@ export default function AnnulerComplementModal({
       reset()
       onDone(
         'success',
-        `Demande de complément annulée. Le dossier est repassé « En cours ».${suffixeEmail(res.data?.email_envoye)}`,
+        `${tf('admin.annulerComplement.annulee')}${emailSuffix(res.data?.email_envoye, tf)}`,
       )
     } catch (err) {
       const status = err.response?.status
       const code = err.response?.data?.code
-      const { message, fields } = extractErrors(err, "L'annulation a échoué.")
+      const { message, fields } = extractErrors(err, tf('admin.reaffectation.annulationEchec'), lang)
 
       if (status === 403 && code === 'dossier_reaffecte') {
         onClose()
@@ -98,10 +76,10 @@ export default function AnnulerComplementModal({
         return
       }
 
-      if (status === 409 && MESSAGES_409[code]) {
+      if (status === 409 && CODES_409[code]) {
         onClose()
         reset()
-        onDone('info', MESSAGES_409[code])
+        onDone('info', tf(CODES_409[code]))
         return
       }
 
@@ -121,7 +99,7 @@ export default function AnnulerComplementModal({
       open={open}
       onClose={fermer}
       busy={busy}
-      title={<span className="whitespace-nowrap">Annuler la demande de complément</span>}
+      title={<span className="whitespace-nowrap">{tf('admin.annulerComplement.titre')}</span>}
       subtitle={
         <div className="flex flex-wrap items-center gap-2">
           <span className="font-mono text-sm font-medium text-institutional" dir="ltr">
@@ -138,7 +116,7 @@ export default function AnnulerComplementModal({
             disabled={busy}
             className="inline-flex items-center justify-center rounded-[8px] border border-gray-300 bg-white px-4 py-2.5 text-sm font-medium text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
           >
-            Retour
+            {tf('commun.back')}
           </button>
           <button
             type="submit"
@@ -147,7 +125,7 @@ export default function AnnulerComplementModal({
             aria-busy={busy}
             className="inline-flex items-center justify-center rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040] disabled:cursor-not-allowed disabled:opacity-60"
           >
-            {busy ? 'Envoi…' : 'Annuler la demande de complément'}
+            {busy ? tf('admin.ui.envoi') : tf('admin.annulerComplement.annuler')}
           </button>
         </>
       }
@@ -155,20 +133,27 @@ export default function AnnulerComplementModal({
       <form id="form-annuler-complement" onSubmit={submit} noValidate className="space-y-5">
         <div className="rounded-[8px] border border-[#c4b5fd] bg-[#f5f3ff] px-4 py-3">
           <p className="mb-2 text-[11px] font-medium tracking-[0.08em] text-gray-500 uppercase">
-            Demande ouverte le {formatDateHeure(complement?.date_demande)}
-            {complement?.auteur ? ` par ${nomComplet(complement.auteur)}` : ''}
+            {tf('admin.annulerComplement.ouverteLe', {
+              date: formatDateHeure(complement?.date_demande),
+            })}
+            {complement?.auteur
+              ? ` ${tf('admin.annulerComplement.ouvertePar', { nom: nomComplet(complement.auteur) })}`
+              : ''}
           </p>
           <p className="text-sm italic text-gray-800">« {complement?.question} »</p>
           {complement?.piece_exigee && (
             <p className="mt-2 text-sm text-gray-700">
-              Pièce attendue : {complement.description_piece || 'fichier'} (fichier exigé)
+              {tf('admin.annulerComplement.pieceAttendue', {
+                piece: complement.description_piece || tf('admin.annulerComplement.fichier'),
+              })}{' '}
+              {tf('admin.annulerComplement.fichierExige')}
             </p>
           )}
         </div>
 
         <div>
           <FieldLabel htmlFor="motif-annulation-complement" required>
-            Motif de l&apos;annulation
+            {tf('admin.annulerComplement.motifLabel')}
           </FieldLabel>
           <TextArea
             id="motif-annulation-complement"
@@ -177,13 +162,13 @@ export default function AnnulerComplementModal({
             maxLength={MAX_MOTIF}
             value={motif}
             onChange={(e) => setMotif(e.target.value.slice(0, MAX_MOTIF))}
-            placeholder="Pourquoi cette demande n'est-elle plus nécessaire ?"
+            placeholder={tf('admin.annulerComplement.motifPlaceholder')}
             error={errors.motif}
           />
           <div className="mt-1.5 flex items-start justify-between gap-3">
             <FieldError message={errors.motif} />
             <p className="ms-auto font-mono text-xs text-gray-400">
-              {motif.length} / {MAX_MOTIF}
+              {tf('admin.annulerComplement.motifCompteur', { n: motif.length, max: MAX_MOTIF })}
             </p>
           </div>
         </div>
@@ -191,13 +176,7 @@ export default function AnnulerComplementModal({
         <div className="rounded-[8px] border border-action/20 bg-[#e6f6ed] px-4 py-3 text-sm leading-relaxed text-gray-700">
           <p className="flex items-start gap-2">
             <Mail className="mt-0.5 h-4 w-4 shrink-0 text-institutional" aria-hidden />
-            <span>
-              Le dossier revient à « En cours » et le formulaire du citoyen se ferme. Le citoyen
-              voit que son intervention n&apos;est plus nécessaire et{' '}
-              <strong>un email lui est envoyé</strong>. La question, votre nom, la date et le motif
-              restent dans l&apos;historique ; le motif n&apos;est pas montré au citoyen. Aucune
-              réponse n&apos;est supprimée.
-            </span>
+            <span>{tf('admin.annulerComplement.explication')}</span>
           </p>
         </div>
 

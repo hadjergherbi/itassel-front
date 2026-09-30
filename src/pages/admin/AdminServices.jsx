@@ -16,14 +16,17 @@ import DataTable from '../../components/admin/DataTable'
 import EmptyState from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
 import ConfirmDialog from '../../components/ui/ConfirmDialog'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { libelleService } from '../../lib/libelles'
 
-const BLOCAGE_SUPPRESSION = {
-  service_doleances: 'Ce service contient des doléances.',
-  service_utilisateurs: 'Des utilisateurs sont rattachés à ce service.',
-  service_reaffectations: 'Ce service apparaît dans des réaffectations.',
+function blocageSuppression(tf, raison) {
+  const cle = `admin.services.blocage.${raison}`
+  const traduit = tf(cle)
+  return traduit !== cle ? traduit : raison
 }
 
 export default function AdminServices() {
+  const { tf, lang } = useLanguage()
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/services', {
     fetcher: () => endpoints.services(),
   })
@@ -67,11 +70,11 @@ export default function AdminServices() {
         designation.id_service,
         idResp === '' ? null : Number(idResp),
       )
-      toast.show('success', 'Responsable enregistré.')
+      toast.show('success', tf('admin.services.responsableEnregistre'))
       setDesignation(null)
       reload()
     } catch (err) {
-      const { message, fields } = extractErrors(err)
+      const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!Object.keys(fields).length) toast.show('error', message)
     } finally {
@@ -82,7 +85,7 @@ export default function AdminServices() {
   const sauverService = async (e) => {
     e.preventDefault()
     if (!nomService.trim()) {
-      setErrors({ nom_service: 'Indiquez le nom du service.' })
+      setErrors({ nom_service: tf('admin.services.nomRequis') })
       return
     }
     setBusy(true)
@@ -92,11 +95,11 @@ export default function AdminServices() {
       } else {
         await endpoints.creerService({ nom_service: nomService.trim() })
       }
-      toast.show('success', 'Service enregistré.')
+      toast.show('success', tf('admin.services.serviceEnregistre'))
       setModalService(null)
       reload()
     } catch (err) {
-      const { message, fields } = extractErrors(err)
+      const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!Object.keys(fields).length) toast.show('error', message)
     } finally {
@@ -109,12 +112,12 @@ export default function AdminServices() {
     setBusy(true)
     try {
       await endpoints.supprimerService(aSupprimer.id_service)
-      toast.show('success', 'Service supprimé.')
+      toast.show('success', tf('admin.services.serviceSupprime'))
       if (designation?.id_service === aSupprimer.id_service) setDesignation(null)
       setASupprimer(null)
       reload()
     } catch (err) {
-      const { message } = extractErrors(err)
+      const { message } = extractErrors(err, undefined, lang)
       toast.show('error', message)
       setASupprimer(null)
       reload()
@@ -123,11 +126,13 @@ export default function AdminServices() {
     }
   }
 
+  const nomDu = (s) => libelleService(s?.nom_service ?? s?.nom, lang) || (s?.nom_service ?? s?.nom ?? '')
+
   const colonnes = [
-    { id: 'nom', header: 'Service', cell: (s) => s.nom_service ?? s.nom },
+    { id: 'nom', header: tf('admin.monCompte.service'), cell: (s) => nomDu(s) },
     {
       id: 'resp',
-      header: 'Responsable',
+      header: tf('admin.services.colResponsable'),
       cell: (s) =>
         s.responsable ? (
           <span className="inline-flex items-center gap-2">
@@ -136,14 +141,14 @@ export default function AdminServices() {
           </span>
         ) : (
           <span className="rounded-full bg-warning-bg px-2 py-0.5 text-xs font-medium text-warning-text">
-            Aucun responsable
+            {tf('admin.services.aucunResponsable')}
           </span>
         ),
     },
-    { id: 'total', header: 'Doléances', className: 'font-mono', cell: (s) => s.total ?? 0 },
+    { id: 'total', header: tf('admin.layout.doleances'), className: 'font-mono', cell: (s) => s.total ?? 0 },
     {
       id: 'traiter',
-      header: 'À traiter',
+      header: tf('admin.services.colATraiter'),
       cell: (s) => (
         <span className="inline-flex rounded-full bg-nouvelle-bg px-2 py-0.5 font-mono text-xs text-nouvelle">
           {s.a_traiter ?? 0}
@@ -152,13 +157,13 @@ export default function AdminServices() {
     },
     {
       id: 'actions',
-      header: 'Actions',
+      header: tf('admin.services.colActions'),
       cell: (s) => (
         <div className="flex items-center gap-1">
           <button
             type="button"
             className="rounded-[8px] p-1.5 text-gray-500 hover:bg-gray-100"
-            aria-label="Modifier"
+            aria-label={tf('admin.services.modifier')}
             onClick={() => {
               setDesignation(s)
               setIdResp(s.responsable?.id_utilisateur ? String(s.responsable.id_utilisateur) : '')
@@ -176,7 +181,7 @@ export default function AdminServices() {
               setErrors({})
             }}
           >
-            Renommer
+            {tf('admin.services.renommer')}
           </button>
           <button
             type="button"
@@ -186,8 +191,12 @@ export default function AdminServices() {
                 ? 'cursor-not-allowed text-gray-400 opacity-40'
                 : 'text-gray-500 hover:bg-red-50 hover:text-red-600',
             ].join(' ')}
-            aria-label="Supprimer"
-            title={s.supprimable === false ? (BLOCAGE_SUPPRESSION[s.raison_blocage] ?? s.raison_blocage ?? undefined) : undefined}
+            aria-label={tf('admin.services.supprimer')}
+            title={
+              s.supprimable === false
+                ? blocageSuppression(tf, s.raison_blocage) || s.raison_blocage || undefined
+                : undefined
+            }
             disabled={s.supprimable === false}
             onClick={() => setASupprimer(s)}
           >
@@ -202,7 +211,7 @@ export default function AdminServices() {
     return (
       <div className="max-w-lg rounded-[8px] border bg-white p-6">
         <p className="mb-4 text-sm text-red-600">{erreur}</p>
-        <Button onClick={reload}>Réessayer</Button>
+        <Button onClick={reload}>{tf('commun.retry')}</Button>
       </div>
     )
   }
@@ -210,8 +219,8 @@ export default function AdminServices() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        title="Services"
-        subtitle="Chaque service traite les doléances de son domaine. Un service affiché sans responsable ne peut pas transférer ses dossiers."
+        title={tf('admin.layout.services')}
+        subtitle={tf('admin.services.sousTitre')}
         actions={
           <Button
             onClick={() => {
@@ -220,7 +229,7 @@ export default function AdminServices() {
               setErrors({})
             }}
           >
-            <Plus className="h-4 w-4" /> Ajouter un service
+            <Plus className="h-4 w-4" /> {tf('admin.services.ajouter')}
           </Button>
         }
       />
@@ -232,12 +241,11 @@ export default function AdminServices() {
               to={`/admin/doleances?sans_responsable=1&service=${a.id_service}`}
               className="rounded-[8px] border border-warning-border bg-white px-3 py-1.5 text-sm font-medium text-warning-text"
             >
-              Voir les dossiers
+              {tf('admin.services.voirDossiers')}
             </Link>
           }
         >
-          Le service {a.nom_service ?? a.nom} n&apos;a pas de responsable. Les doléances restent en
-          attente ; elles ne sont pas transférées vers un autre service.
+          {tf('admin.services.alerteSansResp', { nom: nomDu(a) })}
         </AlertBanner>
       ))}
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -247,43 +255,40 @@ export default function AdminServices() {
             rows={services}
             rowKey="id_service"
             loading={loadState === 'loading'}
-            emptyState={<EmptyState title="Aucun service." />}
+            emptyState={<EmptyState title={tf('admin.services.vide')} />}
           />
           <p className="border-t border-gray-100 px-4 py-3 text-xs text-gray-500">
-            Un service ne peut être supprimé que s&apos;il n&apos;a ni doléance, ni utilisateur rattaché.
+            {tf('admin.services.noteSuppression')}
           </p>
         </div>
         {designation && (
-          <Card title="Désigner un responsable">
+          <Card title={tf('admin.services.designerTitre')}>
             <form onSubmit={sauverResponsable} className="space-y-4">
-              <p className="text-sm text-gray-600">Service {designation.nom_service ?? designation.nom}</p>
+              <p className="text-sm text-gray-600">{tf('admin.services.serviceLabel', { nom: nomDu(designation) })}</p>
               <div>
-                <FieldLabel htmlFor="resp">Responsable</FieldLabel>
+                <FieldLabel htmlFor="resp">{tf('admin.services.colResponsable')}</FieldLabel>
                 <SelectInput
                   id="resp"
                   value={idResp}
                   onChange={(e) => setIdResp(e.target.value)}
                   error={errors.id_responsable}
                 >
-                  <option value="">Aucun responsable</option>
+                  <option value="">{tf('admin.services.aucunResponsable')}</option>
                   {candidats.map((u) => (
                     <option key={u.id_utilisateur} value={u.id_utilisateur}>
                       {nomComplet(u)}
                     </option>
                   ))}
                 </SelectInput>
-                <p className="mt-1.5 text-xs text-gray-500">
-                  Seuls les utilisateurs actifs rattachés au service peuvent être désignés, jamais un
-                  autre service.
-                </p>
+                <p className="mt-1.5 text-xs text-gray-500">{tf('admin.services.aideResponsable')}</p>
                 <FieldError message={errors.id_responsable} />
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="secondary" onClick={() => setDesignation(null)}>
-                  Annuler
+                  {tf('commun.cancel')}
                 </Button>
                 <Button type="submit" loading={busy}>
-                  Enregistrer
+                  {tf('commun.save')}
                 </Button>
               </div>
             </form>
@@ -295,21 +300,21 @@ export default function AdminServices() {
         open={Boolean(modalService)}
         onClose={() => setModalService(null)}
         busy={busy}
-        title={modalService?.id_service ? 'Modifier le service' : 'Ajouter un service'}
+        title={modalService?.id_service ? tf('admin.services.modifierTitre') : tf('admin.services.ajouter')}
         footer={
           <>
             <Button variant="secondary" onClick={() => setModalService(null)} disabled={busy}>
-              Annuler
+              {tf('commun.cancel')}
             </Button>
             <Button type="submit" form="form-service" loading={busy}>
-              Enregistrer
+              {tf('commun.save')}
             </Button>
           </>
         }
       >
         <form id="form-service" onSubmit={sauverService}>
           <FieldLabel htmlFor="nom-service" required>
-            Nom du service
+            {tf('admin.services.nomChamp')}
           </FieldLabel>
           <TextInput
             id="nom-service"
@@ -318,22 +323,19 @@ export default function AdminServices() {
             error={errors.nom_service}
           />
           <FieldError message={errors.nom_service} />
-          <p className="mt-2 text-xs text-gray-500">
-            La création ou la modification d&apos;un service ne déplace jamais les doléances existantes.
-          </p>
+          <p className="mt-2 text-xs text-gray-500">{tf('admin.services.noteCreation')}</p>
         </form>
       </Modal>
       <ConfirmDialog
         open={Boolean(aSupprimer)}
-        title="Supprimer le service ?"
+        title={tf('admin.services.confirmSupprimerTitre')}
         danger
         busy={busy}
-        confirmLabel="Supprimer"
+        confirmLabel={tf('admin.services.supprimer')}
         onClose={() => setASupprimer(null)}
         onConfirm={supprimer}
       >
-        Le service « {aSupprimer?.nom_service ?? aSupprimer?.nom} » sera définitivement supprimé. Cette
-        action est irréversible.
+        {tf('admin.services.confirmSupprimerCorps', { nom: nomDu(aSupprimer) })}
       </ConfirmDialog>
     </div>
   )

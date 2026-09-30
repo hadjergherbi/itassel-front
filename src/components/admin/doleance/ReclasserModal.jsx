@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import Modal from '../Modal'
 import Button from '../../ui/Button'
 import StatusBadge from '../../StatusBadge'
@@ -6,8 +6,10 @@ import { FieldError } from '../../FormFields'
 import { endpoints } from '../../../lib/endpoints'
 import { extractErrors } from '../../../lib/adminApi'
 import { CODES_CONCLUSION, issuesAutorisees, natureCode, statutKey } from '../../../lib/statuts'
+import { useLanguage } from '../../../i18n/LanguageContext'
 
 export default function ReclasserModal({ open, onClose, dossier, transitions = [], onDone }) {
+  const { tf, lang } = useLanguage()
   const [idStatut, setIdStatut] = useState('')
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -29,16 +31,16 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
     e.preventDefault()
     if (busy) return
     if (!idStatut) {
-      setErrors({ id_statut: 'Choisissez la nouvelle issue.' })
+      setErrors({ id_statut: tf('admin.reclasser.choisirIssue') })
       return
     }
     setBusy(true)
     try {
       const res = await endpoints.reclasser(dossier.reference, { id_statut: Number(idStatut) })
-      onDone('success', res.data?.message || 'Le dossier a été reclassé.')
+      onDone('success', res.data?.message || tf('admin.reclasser.succes'))
       onClose()
     } catch (err) {
-      const { message, fields } = extractErrors(err, 'Le reclassement a échoué.')
+      const { message, fields } = extractErrors(err, tf('admin.reclasser.echec'), lang)
       setErrors(fields)
       if (!Object.keys(fields).length) onDone('error', message)
     } finally {
@@ -51,7 +53,7 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Reclasser le dossier"
+      title={tf('admin.reclasser.titre')}
       subtitle={
         <span className="font-mono" dir="ltr">
           {dossier?.reference}
@@ -60,18 +62,17 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('commun.cancel')}
           </Button>
           <Button type="submit" form="form-reclasser" loading={busy}>
-            Reclasser
+            {tf('admin.reclasser.reclasser')}
           </Button>
         </>
       }
     >
       <form id="form-reclasser" onSubmit={submit} noValidate className="space-y-4">
         <p className="text-sm text-gray-600">
-          Ancien classement en lecture seule. Choisissez l&apos;issue métier correspondant à la
-          nature « {dossier?.nature?.libelle ?? '—'} ».
+          {tf('admin.reclasser.intro', { nature: dossier?.nature?.libelle ?? '—' })}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
           {choix.map((s) => {

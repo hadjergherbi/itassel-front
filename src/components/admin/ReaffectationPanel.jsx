@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+﻿import { useCallback, useEffect, useState } from 'react'
 import { Building2, Check, Mail, Users } from 'lucide-react'
 import { FieldError, FieldLabel, TextArea } from '../FormFields'
 import Modal from './Modal'
@@ -7,25 +7,26 @@ import Button from '../ui/Button'
 import adminApi, { extractErrors } from '../../lib/adminApi'
 import api from '../../lib/api'
 import { endpoints } from '../../lib/endpoints'
-import { formatDate, message409, nomComplet } from '../../lib/statuts'
+import { formatDate, formatDateHeure, message409, nomComplet } from '../../lib/statuts'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
+import { useLanguage } from '../../i18n/LanguageContext'
 
-const MESSAGES_409 = {
-  demande_en_attente: 'Une demande de réaffectation est déjà en attente pour ce dossier.',
-  dossier_conclu: "Ce dossier est conclu : une réaffectation n'est plus possible.",
-  deja_acceptee: 'Cette demande a déjà été acceptée.',
-  deja_refusee: 'Cette demande a déjà été refusée.',
-  deja_annulee: 'Cette demande a déjà été annulée.',
-  sans_suite: 'Cette demande a été classée sans suite.',
-}
+const CODES_409 = [
+  'demande_en_attente',
+  'dossier_conclu',
+  'deja_acceptee',
+  'deja_refusee',
+  'deja_annulee',
+  'sans_suite',
+]
 
-function messageReaffectation(err, fallback) {
+function messageReaffectation(err, tf, fallback, lang = 'fr') {
   const code = err.response?.data?.code
-  if (code && MESSAGES_409[code]) return MESSAGES_409[code]
-  return extractErrors(err, fallback).message
+  if (code && CODES_409.includes(code)) return tf(`admin.reaffectation.codes.${code}`)
+  return extractErrors(err, fallback, lang).message
 }
 
-function ServiceRadios({ services, value, onChange, excludeId, allowInconnu, disabled }) {
+function ServiceRadios({ services, value, onChange, excludeId, allowInconnu, disabled, labelInconnu }) {
   const options = services.filter((s) => s.id_service !== excludeId)
 
   const carte = (selected, children, onPick) => (
@@ -56,7 +57,7 @@ function ServiceRadios({ services, value, onChange, excludeId, allowInconnu, dis
         carte(String(value) === String(s.id_service), s.nom_service, () => onChange(String(s.id_service))),
       )}
       {allowInconnu &&
-        carte(value === '', <span className="font-medium">Je ne sais pas</span>, () => onChange(''))}
+        carte(value === '', <span className="font-medium">{labelInconnu}</span>, () => onChange(''))}
     </div>
   )
 }
@@ -91,6 +92,7 @@ function BoutonPrincipal({ children, form, disabled, danger }) {
 }
 
 function DemanderModal({ open, onClose, dossier, services, onDone }) {
+  const { tf, lang } = useLanguage()
   const [service, setService] = useState('')
   const [motif, setMotif] = useState('')
   const [errors, setErrors] = useState({})
@@ -108,7 +110,7 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
     e.preventDefault()
     if (busy) return
     if (!motif.trim()) {
-      setErrors({ motif: 'Indiquez le motif de la demande.' })
+      setErrors({ motif: tf('admin.reaffectation.motifRequis') })
       return
     }
     setBusy(true)
@@ -119,14 +121,18 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
       })
       onDone(
         'success',
-        res.data?.message ||
-          'Votre demande de réaffectation a été enregistrée. Elle est en attente de décision du Super administrateur.',
+        res.data?.message || tf('admin.reaffectation.demandeEnregistree'),
       )
       onClose()
     } catch (err) {
-      const { fields } = extractErrors(err)
+      const { fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!fields.motif) onDone('error', messageReaffectation(err, "La demande n'a pas pu être envoyée."))
+      if (!fields.motif) {
+        onDone(
+          'error',
+          messageReaffectation(err, tf, tf('admin.reaffectation.demandeEchec'), lang),
+        )
+      }
     } finally {
       setBusy(false)
     }
@@ -137,22 +143,22 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Demander une réaffectation"
+      title={tf('admin.reaffectation.demanderTitre')}
       subtitle={dossier?.reference}
       footer={
         <>
           <BoutonSecondaire onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('commun.cancel')}
           </BoutonSecondaire>
           <BoutonPrincipal form="form-demander-reaffectation" disabled={busy}>
-            {busy ? 'Envoi…' : 'Envoyer la demande'}
+            {busy ? tf('admin.ui.envoi') : tf('admin.reaffectation.envoyerDemande')}
           </BoutonPrincipal>
         </>
       }
     >
       <form id="form-demander-reaffectation" onSubmit={submit} noValidate className="space-y-5">
         <div>
-          <p className="mb-3 text-sm font-medium text-gray-800">Service suggéré</p>
+          <p className="mb-3 text-sm font-medium text-gray-800">{tf('admin.reaffectation.serviceSuggere')}</p>
           <ServiceRadios
             services={services}
             value={service}
@@ -160,11 +166,12 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
             excludeId={dossier?.service?.id_service}
             allowInconnu
             disabled={busy}
+            labelInconnu={tf('admin.reaffectation.jeNeSaisPas')}
           />
         </div>
         <div>
           <FieldLabel htmlFor="motif-demande" required>
-            Motif
+            {tf('admin.reaffectation.motif')}
           </FieldLabel>
           <TextArea
             id="motif-demande"
@@ -177,9 +184,7 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
           <FieldError message={errors.motif} />
         </div>
         <div className="rounded-[8px] bg-gray-50 px-4 py-3 text-xs leading-relaxed text-gray-600">
-          La demande est enregistrée avec l&apos;état « En attente ». Le Super administrateur décide
-          du service de destination. Rien n&apos;est modifié tant que la demande n&apos;est pas
-          acceptée.
+          {tf('admin.reaffectation.infoDemande')}
         </div>
       </form>
     </Modal>
@@ -187,6 +192,7 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
 }
 
 function AnnulerModal({ open, onClose, demande, onDone }) {
+  const { tf, lang } = useLanguage()
   const [motif, setMotif] = useState('')
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -202,7 +208,7 @@ function AnnulerModal({ open, onClose, demande, onDone }) {
     e.preventDefault()
     if (busy) return
     if (!motif.trim()) {
-      setErrors({ motif: "Indiquez le motif de l'annulation." })
+      setErrors({ motif: tf('admin.reaffectation.motifAnnulationRequis') })
       return
     }
     setBusy(true)
@@ -210,12 +216,17 @@ function AnnulerModal({ open, onClose, demande, onDone }) {
       const res = await adminApi.post(`/admin/reaffectations/${demande.id_reaffectation}/annuler`, {
         motif: motif.trim(),
       })
-      onDone('success', res.data?.message || 'Votre demande de réaffectation a été annulée.')
+      onDone('success', res.data?.message || tf('admin.reaffectation.demandeAnnulee'))
       onClose()
     } catch (err) {
-      const { fields } = extractErrors(err)
+      const { fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!fields.motif) onDone('error', messageReaffectation(err, "L'annulation a échoué."))
+      if (!fields.motif) {
+        onDone(
+          'error',
+          messageReaffectation(err, tf, tf('admin.reaffectation.annulationEchec'), lang),
+        )
+      }
     } finally {
       setBusy(false)
     }
@@ -226,14 +237,14 @@ function AnnulerModal({ open, onClose, demande, onDone }) {
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Annuler la demande"
+      title={tf('admin.reaffectation.annulerTitre')}
       footer={
         <>
           <BoutonSecondaire onClick={onClose} disabled={busy}>
-            Retour
+            {tf('commun.back')}
           </BoutonSecondaire>
           <BoutonPrincipal form="form-annuler-reaffectation" disabled={busy} danger>
-            {busy ? 'Envoi…' : 'Annuler la demande'}
+            {busy ? tf('admin.ui.envoi') : tf('admin.reaffectation.annulerDemande')}
           </BoutonPrincipal>
         </>
       }
@@ -241,16 +252,18 @@ function AnnulerModal({ open, onClose, demande, onDone }) {
       <form id="form-annuler-reaffectation" onSubmit={submit} noValidate className="space-y-5">
         <div className="rounded-[8px] border border-gray-200 bg-gray-50 px-4 py-3">
           <p className="mb-1 text-xs font-medium tracking-[0.08em] text-gray-500 uppercase">
-            Votre demande du {formatDate(demande?.date_demande)}
+            {tf('admin.reaffectation.votreDemandeDu', { date: formatDate(demande?.date_demande) })}
           </p>
           <p className="text-sm text-gray-800">
-            Service suggéré : {demande?.service_propose?.nom_service ?? 'Non précisé'}
+            {tf('admin.reaffectation.serviceSuggereLabel', {
+              service: demande?.service_propose?.nom_service ?? tf('admin.reaffectation.nonPrecise'),
+            })}
           </p>
           {demande?.motif && <p className="mt-1 text-sm italic text-gray-700">« {demande.motif} »</p>}
         </div>
         <div>
           <FieldLabel htmlFor="motif-annulation" required>
-            Motif de l&apos;annulation
+            {tf('admin.reaffectation.motifAnnulation')}
           </FieldLabel>
           <TextArea
             id="motif-annulation"
@@ -268,6 +281,7 @@ function AnnulerModal({ open, onClose, demande, onDone }) {
 }
 
 function RefuserModal({ open, onClose, demande, onDone }) {
+  const { tf, lang } = useLanguage()
   const [motif, setMotif] = useState('')
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
@@ -283,7 +297,7 @@ function RefuserModal({ open, onClose, demande, onDone }) {
     e.preventDefault()
     if (busy) return
     if (!motif.trim()) {
-      setErrors({ motif: 'Indiquez le motif du refus.' })
+      setErrors({ motif: tf('admin.reaffectation.motifRefusRequis') })
       return
     }
     setBusy(true)
@@ -291,12 +305,14 @@ function RefuserModal({ open, onClose, demande, onDone }) {
       const res = await adminApi.post(`/admin/reaffectations/${demande.id_reaffectation}/refuser`, {
         motif: motif.trim(),
       })
-      onDone('success', res.data?.message || 'La demande de réaffectation a été refusée.')
+      onDone('success', res.data?.message || tf('admin.reaffectation.demandeRefusee'))
       onClose()
     } catch (err) {
-      const { fields } = extractErrors(err)
+      const { fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!fields.motif) onDone('error', messageReaffectation(err, 'Le refus a échoué.'))
+      if (!fields.motif) {
+        onDone('error', messageReaffectation(err, tf, tf('admin.reaffectation.refusEchec'), lang))
+      }
     } finally {
       setBusy(false)
     }
@@ -307,26 +323,28 @@ function RefuserModal({ open, onClose, demande, onDone }) {
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Refuser la demande"
+      title={tf('admin.reaffectation.refuserTitre')}
       footer={
         <>
           <BoutonSecondaire onClick={onClose} disabled={busy}>
-            Retour
+            {tf('commun.back')}
           </BoutonSecondaire>
           <BoutonPrincipal form="form-refuser-reaffectation" disabled={busy} danger>
-            {busy ? 'Envoi…' : 'Refuser'}
+            {busy ? tf('admin.ui.envoi') : tf('admin.reaffectation.refuser')}
           </BoutonPrincipal>
         </>
       }
     >
       <form id="form-refuser-reaffectation" onSubmit={submit} noValidate className="space-y-5">
         <p className="text-sm text-gray-600">
-          Demande de {nomComplet(demande?.demandeur)} — service suggéré :{' '}
-          {demande?.service_propose?.nom_service ?? 'non précisé'}.
+          {tf('admin.reaffectation.demandeDe', {
+            nom: nomComplet(demande?.demandeur),
+            service: demande?.service_propose?.nom_service ?? tf('admin.reaffectation.nonPreciseMin'),
+          })}
         </p>
         <div>
           <FieldLabel htmlFor="motif-refus" required>
-            Motif du refus
+            {tf('admin.reaffectation.motifRefus')}
           </FieldLabel>
           <TextArea
             id="motif-refus"
@@ -344,6 +362,7 @@ function RefuserModal({ open, onClose, demande, onDone }) {
 }
 
 function AccepterModal({ open, onClose, demande, services, onDone }) {
+  const { tf, lang } = useLanguage()
   const preselect = demande?.service_propose?.id_service
     ? String(demande.service_propose.id_service)
     : ''
@@ -364,7 +383,7 @@ function AccepterModal({ open, onClose, demande, services, onDone }) {
     e.preventDefault()
     if (busy) return
     if (!service) {
-      setErrors({ id_service_destination: 'Choisissez le service de destination.' })
+      setErrors({ id_service_destination: tf('admin.reaffectation.choisirService') })
       return
     }
     setBusy(true)
@@ -373,17 +392,20 @@ function AccepterModal({ open, onClose, demande, services, onDone }) {
         id_service_destination: Number(service),
       })
       const dest = res.data?.doleance?.service ?? ''
+      const nomDest = dest ? (typeof dest === 'string' ? dest : dest.nom_service) : ''
       onDone(
         'success',
         res.data?.message ||
-          `Le dossier a été réaffecté${dest ? ` au service ${typeof dest === 'string' ? dest : dest.nom_service}` : ''}.`,
+          (nomDest
+            ? tf('admin.reaffectation.dossierReaffecteVers', { service: nomDest })
+            : tf('admin.reaffectation.dossierReaffecte')),
       )
       onClose()
     } catch (err) {
-      const { fields } = extractErrors(err)
+      const { fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!Object.keys(fields).length) {
-        onDone('error', messageReaffectation(err, "L'acceptation a échoué."))
+        onDone('error', messageReaffectation(err, tf, tf('admin.reaffectation.acceptationEchec'), lang))
       }
     } finally {
       setBusy(false)
@@ -395,21 +417,23 @@ function AccepterModal({ open, onClose, demande, services, onDone }) {
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Réaffecter le dossier"
+      title={tf('admin.reaffectation.accepterTitre')}
       footer={
         <>
           <BoutonSecondaire onClick={onClose} disabled={busy}>
-            Retour
+            {tf('commun.back')}
           </BoutonSecondaire>
           <BoutonPrincipal form="form-accepter-reaffectation" disabled={busy}>
-            {busy ? 'Envoi…' : 'Réaffecter'}
+            {busy ? tf('admin.ui.envoi') : tf('admin.reaffectation.reaffecterAction')}
           </BoutonPrincipal>
         </>
       }
     >
       <form id="form-accepter-reaffectation" onSubmit={submit} noValidate className="space-y-5">
         <div>
-          <p className="mb-3 text-sm font-medium text-gray-800">Service de destination</p>
+          <p className="mb-3 text-sm font-medium text-gray-800">
+            {tf('admin.reaffectation.serviceDestination')}
+          </p>
           <ServiceRadios
             services={services}
             value={service}
@@ -426,18 +450,8 @@ function AccepterModal({ open, onClose, demande, services, onDone }) {
   )
 }
 
-function formatDateHeure(iso) {
-  if (!iso) return '—'
-  const date = new Date(iso)
-  if (Number.isNaN(date.getTime())) return '—'
-  const jour = new Intl.DateTimeFormat('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }).format(date)
-  const heure = new Intl.DateTimeFormat('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false })
-    .format(date)
-    .replace(/\u202f/g, ' ')
-  return `${jour} · ${heure}`
-}
-
 function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
+  const { tf, lang } = useLanguage()
   const reference = dossier?.reference
   const [detail, setDetail] = useState(null)
   const [services, setServices] = useState([])
@@ -467,7 +481,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
         setLoad('ready')
       })
       .catch((err) => {
-        setErreur(extractErrors(err, 'Impossible de charger le dossier.').message)
+        setErreur(extractErrors(err, tf('admin.reaffectation.chargementEchec'), lang).message)
         setLoad('error')
       })
   }
@@ -493,8 +507,8 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
     e.preventDefault()
     if (busy) return
     const next = {}
-    if (!service) next.id_service_destination = 'Choisissez le service de destination.'
-    if (!motif.trim()) next.motif = 'Indiquez le motif de la réaffectation.'
+    if (!service) next.id_service_destination = tf('admin.reaffectation.choisirService')
+    if (!motif.trim()) next.motif = tf('admin.reaffectation.motifDirectRequis')
     setErrors(next)
     if (Object.keys(next).length) return
 
@@ -507,19 +521,25 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
         notifier_responsable: Boolean(notifier && choisi?.responsable),
       })
       const dest = res.data?.doleance?.service
-      const nomDest = typeof dest === 'string' ? dest : dest?.nom_service ?? choisi?.nom_service ?? 'le service choisi'
-      let texte = `Doléance réaffectée vers ${nomDest}.`
-      if (res.data?.demande_reglee) texte += ' La demande en attente a été réglée.'
+      const nomDest =
+        typeof dest === 'string'
+          ? dest
+          : dest?.nom_service ?? choisi?.nom_service ?? tf('admin.reaffectation.serviceChoisi')
+      let texte = tf('admin.reaffectation.reaffecteeVers', { service: nomDest })
+      if (res.data?.demande_reglee) texte += tf('admin.reaffectation.demandeReglee')
       onDone?.('success', texte)
       onClose()
     } catch (err) {
-      const { fields, message } = extractErrors(err)
+      const { fields, message } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!Object.keys(fields).length) {
         setErreur(
           err.response?.data?.code === 'dossier_conclu'
-            ? 'Ce dossier est terminé : il ne peut plus être réaffecté.'
-            : message409(err.response?.data?.code, messageReaffectation(err, message)),
+            ? tf('admin.reaffectation.dossierTermine')
+            : message409(
+                err.response?.data?.code,
+                messageReaffectation(err, tf, message, lang),
+              ),
         )
       }
     } finally {
@@ -534,7 +554,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
       open={open}
       onClose={onClose}
       busy={busy}
-      title="Réaffecter la doléance"
+      title={tf('admin.reaffectation.directTitre')}
       subtitle={
         d ? (
           <>
@@ -546,7 +566,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('commun.cancel')}
           </Button>
           <Button
             type="submit"
@@ -554,17 +574,19 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
             loading={busy}
             disabled={load !== 'ready' || !service}
           >
-            <Check className="h-4 w-4" /> Confirmer la réaffectation
+            <Check className="h-4 w-4" /> {tf('admin.reaffectation.confirmer')}
           </Button>
         </>
       }
     >
-      {load === 'loading' && <p className="text-sm text-gray-500">Chargement…</p>}
+      {load === 'loading' && (
+        <p className="text-sm text-gray-500">{tf('commun.loading')}</p>
+      )}
       {load === 'error' && (
         <div>
           <p className="mb-3 text-sm text-red-600">{erreur}</p>
           <Button variant="secondary" onClick={charger}>
-            Réessayer
+            {tf('commun.retry')}
           </Button>
         </div>
       )}
@@ -579,24 +601,31 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
           <div className="flex items-center gap-2 rounded-[8px] bg-gray-50 px-4 py-3 text-sm text-gray-800">
             <Building2 className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
             <p>
-              Affectation actuelle :{' '}
+              {tf('admin.reaffectation.affectationActuelle')}{' '}
               <strong>{detail.service?.nom_service ?? '—'}</strong>
               {' · '}
-              {detail.responsable ? nomComplet(detail.responsable) : 'Aucun responsable'}
+              {detail.responsable
+                ? nomComplet(detail.responsable)
+                : tf('admin.reaffectation.aucunResponsable')}
             </p>
           </div>
 
           {attente && (
             <div className="rounded-[8px] bg-warning-bg px-4 py-3 text-sm leading-relaxed text-warning-text">
-              <strong>Une demande de réaffectation est en attente</strong> (
-              {nomComplet(attente.demandeur)}, {formatDateHeure(attente.date_demande)}) : « {attente.motif} ».
-              Service proposé : <strong>{attente.service_propose?.nom_service ?? 'non précisé'}</strong>.
-              Elle sera réglée dans cette même opération, avec la destination que vous choisissez ici.
+              {tf('admin.reaffectation.demandeEnAttenteBanner', {
+                demandeur: nomComplet(attente.demandeur),
+                date: formatDateHeure(attente.date_demande),
+                motif: attente.motif,
+                service:
+                  attente.service_propose?.nom_service ?? tf('admin.reaffectation.nonPreciseMin'),
+              })}
             </div>
           )}
 
           <div>
-            <p className="mb-3 text-sm font-medium text-gray-800">Nouveau service</p>
+            <p className="mb-3 text-sm font-medium text-gray-800">
+              {tf('admin.reaffectation.nouveauService')}
+            </p>
             <div className="space-y-2">
               {services.map((s) => {
                 const estActuel = Number(s.id_service) === Number(actuelId)
@@ -628,14 +657,22 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
                     <div className="min-w-0 flex-1">
                       <p className="font-medium text-gray-900">{s.nom_service}</p>
                       <p className={s.responsable ? 'text-xs text-gray-500' : 'text-xs text-warning-text'}>
-                        {s.responsable ? `Responsable : ${nomComplet(s.responsable)}` : 'Aucun responsable'}
+                        {s.responsable
+                          ? tf('admin.reaffectation.responsableLabel', {
+                              nom: nomComplet(s.responsable),
+                            })
+                          : tf('admin.reaffectation.aucunResponsable')}
                       </p>
                     </div>
                     {estActuel && (
-                      <span className="shrink-0 text-xs text-gray-400">service actuel</span>
+                      <span className="shrink-0 text-xs text-gray-400">
+                        {tf('admin.reaffectation.serviceActuel')}
+                      </span>
                     )}
                     {estPropose && !estActuel && (
-                      <span className="shrink-0 text-xs text-institutional">proposé</span>
+                      <span className="shrink-0 text-xs text-institutional">
+                        {tf('admin.reaffectation.propose')}
+                      </span>
                     )}
                   </label>
                 )
@@ -646,7 +683,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
 
           <div>
             <FieldLabel htmlFor="motif-direct" required>
-              Motif de la réaffectation
+              {tf('admin.reaffectation.motifDirect')}
             </FieldLabel>
             <TextArea
               id="motif-direct"
@@ -667,21 +704,24 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
                   id="notifier-responsable"
                   checked={notifier}
                   onChange={setNotifier}
-                  label="Notifier le nouveau responsable"
-                  hint={`Email interne à ${nomComplet(choisi.responsable)}`}
+                  label={tf('admin.reaffectation.notifierResponsable')}
+                  hint={tf('admin.reaffectation.emailInterne', {
+                    nom: nomComplet(choisi.responsable),
+                  })}
                 />
               </div>
             </div>
           ) : choisi ? (
             <p className="rounded-[8px] bg-gray-50 px-4 py-3 text-sm text-gray-600">
-              Ce service n&apos;a pas de responsable : le dossier apparaîtra dans « Service sans responsable ».
+              {tf('admin.reaffectation.sansResponsableHint')}
             </p>
           ) : null}
 
           {complementOuvert && (
             <div className="rounded-[8px] border border-[#c5d9ee] bg-[#e8f1fb] px-4 py-3 text-sm text-[#1a5f9e]">
-              Un complément est en cours : il est conservé et sera suivi par le service{' '}
-              {choisi?.nom_service ?? 'de destination'}.
+              {tf('admin.reaffectation.complementEnCours', {
+                service: choisi?.nom_service ?? tf('admin.reaffectation.deDestination'),
+              })}
             </div>
           )}
         </form>
@@ -694,6 +734,7 @@ export { ReaffecterDirectModal }
 
 export default function ReaffectationPanel({ dossier, onDone }) {
   const { estSuperAdmin } = useAdminAuth()
+  const { tf } = useLanguage()
   const [services, setServices] = useState([])
   const [modal, setModal] = useState(null)
 
@@ -711,10 +752,10 @@ export default function ReaffectationPanel({ dossier, onDone }) {
     <>
       <section className="rounded-[8px] border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <h2 className="text-base font-bold text-gray-900">Affectation</h2>
+          <h2 className="text-base font-bold text-gray-900">{tf('admin.reaffectation.titre')}</h2>
           {estSuperAdmin && (
             <Button variant="secondary" size="sm" onClick={() => setModal('direct')}>
-              <Users className="h-4 w-4" /> Réaffecter
+              <Users className="h-4 w-4" /> {tf('admin.reaffectation.reaffecter')}
             </Button>
           )}
         </div>
@@ -722,30 +763,30 @@ export default function ReaffectationPanel({ dossier, onDone }) {
         {estSuperAdmin ? (
           <div className="space-y-3">
             <div>
-              <p className="mb-0.5 text-xs text-gray-500">Service affecté</p>
+              <p className="mb-0.5 text-xs text-gray-500">{tf('admin.reaffectation.serviceAffecte')}</p>
               <p className="text-sm font-medium text-gray-900">{dossier.service?.nom_service || '—'}</p>
             </div>
             <div>
-              <p className="mb-0.5 text-xs text-gray-500">Responsable</p>
+              <p className="mb-0.5 text-xs text-gray-500">{tf('admin.reaffectation.responsable')}</p>
               <p className="text-sm font-medium text-gray-900">
                 {dossier.responsable ? nomComplet(dossier.responsable) : (
-                  <span className="text-gray-400">Aucun responsable</span>
+                  <span className="text-gray-400">{tf('admin.reaffectation.aucunResponsable')}</span>
                 )}
               </p>
             </div>
-            <p className="text-xs text-gray-500">Seul le Super Admin peut modifier l&apos;affectation.</p>
+            <p className="text-xs text-gray-500">{tf('admin.reaffectation.seulSuperAdmin')}</p>
           </div>
         ) : (
           <div className="space-y-3">
             <div>
-              <p className="mb-0.5 text-xs text-gray-500">Service</p>
+              <p className="mb-0.5 text-xs text-gray-500">{tf('admin.reaffectation.service')}</p>
               <p className="text-sm font-medium text-gray-900">{dossier.service?.nom_service || '—'}</p>
             </div>
             <div>
-              <p className="mb-0.5 text-xs text-gray-500">Responsable du dossier</p>
+              <p className="mb-0.5 text-xs text-gray-500">{tf('admin.reaffectation.responsableDossier')}</p>
               <p className="text-sm font-medium text-gray-900">
                 {dossier.responsable ? nomComplet(dossier.responsable) : (
-                  <span className="text-gray-400">Non affecté</span>
+                  <span className="text-gray-400">{tf('admin.reaffectation.nonAffecte')}</span>
                 )}
               </p>
             </div>
@@ -754,13 +795,13 @@ export default function ReaffectationPanel({ dossier, onDone }) {
 
         {!estSuperAdmin && !enAttente && (
           <div className="mt-4 border-t border-gray-100 pt-4">
-            <p className="mb-3 text-sm text-gray-600">Cette doléance ne concerne pas votre service ?</p>
+            <p className="mb-3 text-sm text-gray-600">{tf('admin.reaffectation.pasVotreService')}</p>
             <button
               type="button"
               onClick={() => setModal('demander')}
               className="inline-flex rounded-[8px] border border-institutional px-3 py-2 text-sm font-medium text-institutional transition hover:bg-[#e6f6ed]"
             >
-              Demander une réaffectation
+              {tf('admin.reaffectation.demander')}
             </button>
           </div>
         )}
@@ -768,14 +809,14 @@ export default function ReaffectationPanel({ dossier, onDone }) {
         {!estSuperAdmin && enAttente && (
           <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
             <span className="inline-flex rounded-full bg-[#fff4e5] px-2.5 py-0.5 text-xs font-medium text-[#8a5a00]">
-              Demande de réaffectation en attente
+              {tf('admin.reaffectation.enAttente')}
             </span>
             <p className="text-sm text-gray-700">
-              Transfert suggéré vers{' '}
+              {tf('admin.reaffectation.transfertSuggere')}{' '}
               <span className="font-medium">
-                {enAttente.service_propose?.nom_service ?? 'un service à déterminer'}
+                {enAttente.service_propose?.nom_service ?? tf('admin.reaffectation.serviceADeterminer')}
               </span>
-              , demandé le {formatDate(enAttente.date_demande)}.
+              {tf('admin.reaffectation.demandeLe', { date: formatDate(enAttente.date_demande) })}
             </p>
             {enAttente.motif && (
               <p className="text-sm italic text-gray-600">« {enAttente.motif} »</p>
@@ -785,7 +826,7 @@ export default function ReaffectationPanel({ dossier, onDone }) {
               onClick={() => setModal('annuler')}
               className="inline-flex rounded-[8px] border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 transition hover:border-gray-400"
             >
-              Annuler la demande
+              {tf('admin.reaffectation.annulerDemande')}
             </button>
           </div>
         )}

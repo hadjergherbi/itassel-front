@@ -6,8 +6,10 @@ import { message409 } from '../../lib/statuts'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import { useToast } from '../../components/ui/Toast'
+import { useLanguage } from '../../i18n/LanguageContext'
 
 export default function AdminRoles() {
+  const { tf, lang } = useLanguage()
   const toast = useToast()
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/roles', {
     fetcher: () => endpoints.roles(),
@@ -50,10 +52,13 @@ export default function AdminRoles() {
         })
       }
       await endpoints.majPermissionsRole(role.code, [...codes])
-      toast.show('success', `Permissions de « ${role.libelle} » enregistrées.`)
+      toast.show('success', tf('admin.roles.permissionsEnregistrees', { role: role.libelle }))
       reload()
     } catch (err) {
-      toast.show('error', message409(err.response?.data?.code, extractErrors(err).message))
+      toast.show(
+        'error',
+        message409(err.response?.data?.code, extractErrors(err, undefined, lang).message),
+      )
     } finally {
       setBusyRole(null)
     }
@@ -62,28 +67,28 @@ export default function AdminRoles() {
   if (loadState === 'error' && !data) {
     return (
       <div className="max-w-lg rounded-[8px] border bg-white p-6">
-        <p className="mb-4 text-sm text-red-600">{erreur}</p>
-        <Button onClick={reload}>Réessayer</Button>
+        <p className="mb-4 text-sm text-red-600">{erreur || tf('admin.roles.erreurChargement')}</p>
+        <Button onClick={reload}>{tf('commun.retry')}</Button>
       </div>
     )
   }
 
   return (
     <div className="mx-auto max-w-6xl">
-      <PageHeader title="Gestion des rôles" subtitle="Permissions par rôle. Enregistrez chaque colonne séparément." />
+      <PageHeader title={tf('admin.roles.titre')} subtitle={tf('admin.roles.sousTitre')} />
       {loadState === 'loading' && !data ? (
-        <p className="text-sm text-gray-500">Chargement…</p>
+        <p className="text-sm text-gray-500">{tf('commun.loading')}</p>
       ) : (
         <div className="overflow-x-auto rounded-[8px] border border-gray-200 bg-white">
           <table className="w-full min-w-[720px] text-sm">
             <thead>
               <tr className="border-b border-gray-200 bg-gray-50 text-xs uppercase text-gray-500">
-                <th className="px-4 py-3 text-start font-medium">Permission</th>
+                <th className="px-4 py-3 text-start font-medium">{tf('admin.roles.colPermission')}</th>
                 {roles.map((r) => (
                   <th key={r.code} className="px-3 py-3 text-center font-medium">
                     <p>{r.libelle}</p>
                     <p className="mt-0.5 font-normal normal-case text-gray-400">
-                      {r.utilisateurs ?? 0} utilisateur{(r.utilisateurs ?? 0) === 1 ? '' : 's'}
+                      {tf('admin.roles.utilisateurs', { n: r.utilisateurs ?? 0 })}
                     </p>
                   </th>
                 ))}
@@ -93,7 +98,10 @@ export default function AdminRoles() {
               {groupes.map((groupe) => (
                 <Fragment key={groupe.groupe}>
                   <tr className="bg-[#f3faf6]">
-                    <td colSpan={1 + roles.length} className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-institutional">
+                    <td
+                      colSpan={1 + roles.length}
+                      className="px-4 py-2 text-xs font-semibold uppercase tracking-wide text-institutional"
+                    >
                       {groupe.groupe}
                     </td>
                   </tr>
@@ -126,7 +134,7 @@ export default function AdminRoles() {
                 {roles.map((r) => (
                   <td key={`save-${r.code}`} className="px-3 py-3 text-center">
                     <Button size="sm" loading={busyRole === r.code} onClick={() => enregistrer(r)}>
-                      Enregistrer
+                      {tf('commun.save')}
                     </Button>
                   </td>
                 ))}

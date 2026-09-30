@@ -1,17 +1,12 @@
-import { ISSUES, LEGACY_MAPPING, statutKey } from '../../lib/statuts'
+import { ISSUES, LEGACY_MAPPING, libelleStatut, statutKey } from '../../lib/statuts'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import KpiCard from '../../components/ui/KpiCard'
 import Card from '../../components/ui/Card'
-
-const NATURE_LIBELLES = {
-  reclamation: 'Réclamation',
-  signalement: 'Signalement',
-  demande_information: "Demande d'information",
-  suggestion: 'Suggestion',
-}
+import { useLanguage } from '../../i18n/LanguageContext'
+import { libelleTraduit } from '../../lib/libelles'
 
 function formatTaux(valeur) {
   if (valeur == null || Number.isNaN(Number(valeur))) return '—'
@@ -20,7 +15,21 @@ function formatTaux(valeur) {
   return `${Math.round(pct * 10) / 10} %`
 }
 
+function natureLibelle(tf, lang, code) {
+  const cle = `admin.issues.natures.${code}`
+  const traduit = tf(cle)
+  if (traduit !== cle) return traduit
+  return libelleTraduit('natures', code, lang) || code
+}
+
+function issueChamp(tf, alias, champ, fallback) {
+  const cle = `admin.issues.items.${alias}.${champ}`
+  const traduit = tf(cle)
+  return traduit !== cle ? traduit : fallback
+}
+
 export default function AdminIssues() {
+  const { tf, t, lang } = useLanguage()
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/tableau-de-bord', {
     fetcher: () => endpoints.tableauDeBord(),
   })
@@ -34,15 +43,18 @@ export default function AdminIssues() {
   const listeStatuts = Array.isArray(statuts) ? statuts : []
 
   const messageCitoyen = (issue) => {
-    const found = listeStatuts.find((s) => statutKey(s) === issue.alias || String(s.code ?? '').toLowerCase() === issue.alias)
-    return found?.message_citoyen ?? issue.message_citoyen
+    const found = listeStatuts.find(
+      (s) => statutKey(s) === issue.alias || String(s.code ?? '').toLowerCase() === issue.alias,
+    )
+    if (found?.message_citoyen) return found.message_citoyen
+    return issueChamp(tf, issue.alias, 'messageCitoyen', issue.message_citoyen)
   }
 
   if (loadState === 'error' && !data) {
     return (
       <div className="max-w-lg rounded-[8px] border bg-white p-6">
         <p className="mb-4 text-sm text-red-600">{erreur}</p>
-        <Button onClick={reload}>Réessayer</Button>
+        <Button onClick={reload}>{tf('commun.retry')}</Button>
       </div>
     )
   }
@@ -50,37 +62,39 @@ export default function AdminIssues() {
   return (
     <div className="mx-auto max-w-6xl space-y-6">
       <PageHeader
-        title="Issues du traitement"
-        subtitle="Le Ministère ne doit pas laisser une demande sans fin. Cette proposition distingue cinq issues."
+        title={tf('admin.layout.issues')}
+        subtitle={tf('admin.issues.sousTitre')}
         actions={
           <span className="rounded-full bg-warning-bg px-3 py-1 text-xs font-medium text-warning-text">
-            Proposition métier à valider
+            {tf('admin.issues.badge')}
           </span>
         }
       />
-      <Card title="Les cinq issues et ce que voit le citoyen">
+      <Card title={tf('admin.issues.carteCinq')}>
         <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-sm">
             <thead className="text-xs uppercase text-gray-500">
               <tr>
-                <th className="py-2 text-start">Issue</th>
-                <th className="py-2 text-start">Code</th>
-                <th className="py-2 text-start">Définition</th>
-                <th className="py-2 text-start">Natures</th>
-                <th className="py-2 text-start">Condition</th>
-                <th className="py-2 text-start">Message citoyen</th>
+                <th className="py-2 text-start">{tf('admin.issues.colIssue')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colCode')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colDefinition')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colNatures')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colCondition')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colMessage')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {issues.map((i) => (
                 <tr key={i.code}>
-                  <td className="py-3 font-medium">{i.libelle}</td>
+                  <td className="py-3 font-medium">{issueChamp(tf, i.alias, 'libelle', i.libelle)}</td>
                   <td className="py-3 font-mono text-xs">{i.code}</td>
-                  <td className="py-3 text-gray-600">{i.definition}</td>
+                  <td className="py-3 text-gray-600">{issueChamp(tf, i.alias, 'definition', i.definition)}</td>
                   <td className="py-3 text-gray-600">
-                    {i.natures ? i.natures.map((n) => NATURE_LIBELLES[n] ?? n).join(', ') : 'Toutes'}
+                    {i.natures
+                      ? i.natures.map((n) => natureLibelle(tf, lang, n)).join(', ')
+                      : tf('admin.issues.toutesNatures')}
                   </td>
-                  <td className="py-3 text-gray-600">{i.condition}</td>
+                  <td className="py-3 text-gray-600">{issueChamp(tf, i.alias, 'condition', i.condition)}</td>
                   <td className="py-3 italic text-gray-700">« {messageCitoyen(i)} »</td>
                 </tr>
               ))}
@@ -89,49 +103,52 @@ export default function AdminIssues() {
         </div>
       </Card>
       <div className="grid gap-6 lg:grid-cols-2">
-        <Card title="Correspondance anciens et nouveaux états">
+        <Card title={tf('admin.issues.carteCorrespondance')}>
           <table className="w-full text-sm">
             <thead className="text-xs uppercase text-gray-500">
               <tr>
-                <th className="py-2 text-start">Ancien code</th>
-                <th className="py-2 text-start">Correspondance proposée</th>
+                <th className="py-2 text-start">{tf('admin.issues.colAncien')}</th>
+                <th className="py-2 text-start">{tf('admin.issues.colPropose')}</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {mapping.map((m) => (
                 <tr key={m.ancien}>
                   <td className="py-2 font-mono text-xs">{m.ancien}</td>
-                  <td className="py-2">{m.propose}</td>
+                  <td className="py-2">{libelleStatut(m.propose, t)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
         </Card>
-        <Card title="Transitions, filtres et indicateurs adaptés">
+        <Card title={tf('admin.issues.carteTransitions')}>
           <ul className="list-disc space-y-2 ps-5 text-sm text-gray-700">
-            <li>Depuis « Nouvelle doléance » ou « En cours », les cinq issues sont possibles.</li>
-            <li>« Information demandée » reste automatique.</li>
-            <li>Un complément non examiné bloque les issues de conclusion.</li>
-            <li>Maquette « Changer le statut » : choix d&apos;issue + suite (réponse, motif, dossier initial).</li>
+            <li>{tf('admin.issues.transition1')}</li>
+            <li>{tf('admin.issues.transition2')}</li>
+            <li>{tf('admin.issues.transition3')}</li>
+            <li>{tf('admin.issues.transition4')}</li>
           </ul>
         </Card>
       </div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
-        <KpiCard label="Résolus" value={k.resolue ?? 0} dot="bg-institutional" />
-        <KpiCard label="Réponses apportées" value={k.reponse_apportee ?? 0} dot="bg-institutional" />
-        <KpiCard label="Hors compétence" value={k.hors_competence ?? 0} dot="bg-gray-500" />
-        <KpiCard label="Non fondées" value={k.non_retenue ?? 0} dot="bg-danger-text" />
-        <KpiCard label="Doubles" value={k.double ?? 0} dot="bg-double" />
-        <KpiCard label="Terminés au total" value={k.termines_total ?? 0} />
-        <KpiCard label="À reclasser" value={k.a_reclasser?.total ?? k.a_reclasser ?? 0} dot="bg-en-cours" />
-        <KpiCard label="Taux de résolution" value={formatTaux(k.taux_resolution)} hint="Formule ci-dessous" />
+        <KpiCard label={tf('admin.issues.kpi.resolus')} value={k.resolue ?? 0} dot="bg-institutional" />
+        <KpiCard label={tf('admin.issues.kpi.reponses')} value={k.reponse_apportee ?? 0} dot="bg-institutional" />
+        <KpiCard label={tf('admin.issues.kpi.horsCompetence')} value={k.hors_competence ?? 0} dot="bg-gray-500" />
+        <KpiCard label={tf('admin.issues.kpi.nonFondees')} value={k.non_retenue ?? 0} dot="bg-danger-text" />
+        <KpiCard label={tf('admin.issues.kpi.doubles')} value={k.double ?? 0} dot="bg-double" />
+        <KpiCard label={tf('admin.issues.kpi.termines')} value={k.termines_total ?? 0} />
+        <KpiCard
+          label={tf('admin.issues.kpi.aReclasser')}
+          value={k.a_reclasser?.total ?? k.a_reclasser ?? 0}
+          dot="bg-en-cours"
+        />
+        <KpiCard
+          label={tf('admin.issues.kpi.taux')}
+          value={formatTaux(k.taux_resolution)}
+          hint={tf('admin.issues.kpi.tauxHint')}
+        />
       </div>
-      <p className="text-xs leading-relaxed text-gray-500">
-        Taux de résolution = (résolus + réponses apportées) / (réclamations + signalements + suggestions +
-        demandes d&apos;information), hors doubles et hors compétence, et hors dossiers encore ouverts
-        (Nouvelle, En cours, Information demandée). L&apos;indicateur ne compte pas les demandes minorées comme
-        « résolues ».
-      </p>
+      <p className="text-xs leading-relaxed text-gray-500">{tf('admin.issues.formule')}</p>
     </div>
   )
 }

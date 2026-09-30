@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+﻿import { useEffect, useState } from 'react'
 import { Shield } from 'lucide-react'
 import Modal from './Modal'
 import Button from '../ui/Button'
@@ -6,6 +6,8 @@ import { FieldLabel, SelectInput } from '../FormFields'
 import { endpoints } from '../../lib/endpoints'
 import { extractErrors } from '../../lib/adminApi'
 import { message409, nomComplet } from '../../lib/statuts'
+import { useLanguage } from '../../i18n/LanguageContext'
+import { traduireMessageApi } from '../../lib/erreursApi'
 
 function idDe(u) {
   return u?.id_utilisateur ?? u?.id
@@ -42,6 +44,7 @@ function CarteRadio({ name, value, checked, disabled, titre, texte, extra, onCha
 }
 
 export default function DesactiverCompteModal({ open, utilisateur, onClose, onDone }) {
+  const { tf, lang } = useLanguage()
   const [impact, setImpact] = useState(null)
   const [load, setLoad] = useState('idle')
   const [erreur, setErreur] = useState('')
@@ -81,13 +84,15 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
       })
       .catch((err) => {
         if (annule) return
-        setErreur(extractErrors(err, 'Impossible de charger l’impact de ce compte.').message)
+        setErreur(
+          extractErrors(err, tf('admin.utilisateurs.desactiver.chargementEchec'), lang).message,
+        )
         setLoad('error')
       })
     return () => {
       annule = true
     }
-  }, [open, uid])
+  }, [open, uid, tf, lang])
 
   const u = impact?.utilisateur ?? utilisateur
   const service = nomService(impact)
@@ -101,7 +106,7 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
     e.preventDefault()
     if (busy || !uid) return
     if (responsableService && mode === 'remplacant' && !idRemplacant) {
-      setErreur('Choisissez un remplaçant.')
+      setErreur(tf('admin.utilisateurs.desactiver.choisirRemplacant'))
       return
     }
     setBusy(true)
@@ -112,16 +117,21 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
         mode === 'remplacant' && idRemplacant ? Number(idRemplacant) : null,
       )
       const n = Number(res.data?.dossiers_transferes ?? 0)
-      let texte = res.data?.message || 'Compte désactivé.'
+      let texte = res.data?.message || tf('admin.utilisateurs.desactiver.compteDesactive')
       if (n > 0 && remplacant) {
-        texte += ` ${n} dossier(s) confiés à ${nomComplet(remplacant)}.`
+        texte += ` ${tf('admin.utilisateurs.desactiver.dossiersTransferes', { n, nom: nomComplet(remplacant) })}`
       } else if (n > 0) {
-        texte += ` ${n} dossier(s) confiés au remplaçant.`
+        texte += ` ${tf('admin.utilisateurs.desactiver.dossiersTransferesRemplacant', { n })}`
       }
       onDone?.('success', texte)
       onClose()
     } catch (err) {
-      setErreur(message409(err.response?.data?.code, extractErrors(err).message))
+      setErreur(
+        traduireMessageApi(
+          message409(err.response?.data?.code, extractErrors(err, undefined, lang).message),
+          lang,
+        ),
+      )
     } finally {
       setBusy(false)
     }
@@ -129,35 +139,42 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
 
   const sousTitre = responsableService
     ? service
-      ? `Responsable du service ${service}`
-      : 'Responsable de service'
+      ? tf('admin.utilisateurs.desactiver.responsableDuService', { service })
+      : tf('admin.utilisateurs.desactiver.responsableService')
     : [u?.libelle_role, service].filter(Boolean).join(' · ')
 
   const detailDossiers = () => {
     if (!dossiers) return ''
-    const parts = [`${dossiers.nouvelles ?? 0} nouvelle${(dossiers.nouvelles ?? 0) > 1 ? 's' : ''}`]
-    parts.push(`${dossiers.en_cours ?? 0} en cours`)
+    const parts = [
+      tf('admin.utilisateurs.desactiver.detailNouvelles', { n: dossiers.nouvelles ?? 0 }),
+    ]
+    parts.push(tf('admin.utilisateurs.desactiver.detailEnCours', { n: dossiers.en_cours ?? 0 }))
     if ((dossiers.information_demandee ?? 0) > 0) {
       parts.push(
-        `${dossiers.information_demandee} information demandée${dossiers.information_demandee > 1 ? 's' : ''}`,
+        tf('admin.utilisateurs.desactiver.detailInfoDemandee', {
+          n: dossiers.information_demandee,
+        }),
       )
     }
     return parts.join(', ')
   }
 
   const encadreVert = () => {
-    const suite =
-      'Le compte est bloqué immédiatement, y compris s’il est encore connecté. Ses actions passées conservent son nom dans l’historique.'
     if (responsableService && mode === 'remplacant' && remplacant) {
-      return `${nomComplet(remplacant)} devient responsable du service ${service}. ${suite.replace('Le compte', 'Son compte')}`
+      return tf('admin.utilisateurs.desactiver.encadreRemplacantService', {
+        nom: nomComplet(remplacant),
+        service,
+      })
     }
     if (responsableService) {
-      return `Le service ${service} n’aura plus de responsable. ${suite}`
+      return tf('admin.utilisateurs.desactiver.encadreSansResponsable', { service })
     }
     if (remplacant && mode === 'remplacant') {
-      return `${nomComplet(remplacant)} reprend le suivi des dossiers. ${suite}`
+      return tf('admin.utilisateurs.desactiver.encadreRemplacantSuivi', {
+        nom: nomComplet(remplacant),
+      })
     }
-    return suite
+    return tf('admin.utilisateurs.desactiver.encadreBase')
   }
 
   return (
@@ -165,20 +182,24 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
       open={open}
       onClose={onClose}
       busy={busy}
-      title={u ? `Désactiver le compte de ${nomComplet(u)}` : 'Désactiver le compte'}
+      title={
+        u
+          ? tf('admin.utilisateurs.desactiver.titreDe', { nom: nomComplet(u) })
+          : tf('admin.utilisateurs.desactiver.titre')
+      }
       subtitle={sousTitre}
       footer={
         <>
           <Button variant="secondary" onClick={onClose} disabled={busy}>
-            Annuler
+            {tf('commun.cancel')}
           </Button>
           <Button type="submit" form="form-desactiver-compte" loading={busy} disabled={load !== 'ready'}>
-            Désactiver le compte
+            {tf('admin.utilisateurs.desactiver.action')}
           </Button>
         </>
       }
     >
-      {load === 'loading' && <p className="text-sm text-gray-500">Chargement…</p>}
+      {load === 'loading' && <p className="text-sm text-gray-500">{tf('commun.loading')}</p>}
       {load === 'error' && (
         <div>
           <p className="mb-3 text-sm text-red-600">{erreur}</p>
@@ -194,12 +215,12 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
                   setErreur('')
                 })
                 .catch((err) => {
-                  setErreur(extractErrors(err).message)
+                  setErreur(extractErrors(err, undefined, lang).message)
                   setLoad('error')
                 })
             }}
           >
-            Réessayer
+            {tf('commun.retry')}
           </Button>
         </div>
       )}
@@ -213,39 +234,49 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
 
           {responsableService && dossiers && (
             <div className="rounded-[8px] bg-warning-bg px-4 py-3 text-sm leading-relaxed text-warning-text">
-              Ce responsable suit <strong>{dossiers.total} doléances</strong> du service {service} (
-              {detailDossiers()}). Elles <strong>restent dans le service {service}</strong> : aucun
-              transfert automatique vers un autre domaine.
+              {tf('admin.utilisateurs.desactiver.suitDoleances', {
+                total: dossiers.total,
+                service,
+                detail: detailDossiers(),
+              })}
             </div>
           )}
 
           {!responsableService && (suivis?.total ?? 0) > 0 && (
             <div className="rounded-[8px] bg-warning-bg px-4 py-3 text-sm leading-relaxed text-warning-text">
-              {u?.prenom} suit {suivis.total} doléance{suivis.total > 1 ? 's' : ''} en cours ; elles
-              restent dans leur service.
+              {tf('admin.utilisateurs.desactiver.suitEnCours', {
+                prenom: u?.prenom,
+                n: suivis.total,
+              })}
             </div>
           )}
 
           {responsableService && (
             <div className="space-y-3">
-              <p className="text-sm font-medium text-gray-800">Qui reprend le service ?</p>
+              <p className="text-sm font-medium text-gray-800">
+                {tf('admin.utilisateurs.desactiver.quiReprend')}
+              </p>
               <CarteRadio
                 name="reprise-service"
                 value="remplacant"
                 checked={mode === 'remplacant'}
                 disabled={remplacants.length === 0}
                 onChange={setMode}
-                titre="Désigner un remplaçant dans ce service"
-                texte="Le remplaçant reçoit les nouvelles doléances du service et les notifications."
-                extra={remplacants.length === 0 ? 'Aucun autre administrateur actif dans ce service.' : null}
+                titre={tf('admin.utilisateurs.desactiver.designerRemplacant')}
+                texte={tf('admin.utilisateurs.desactiver.designerRemplacantTexte')}
+                extra={
+                  remplacants.length === 0
+                    ? tf('admin.utilisateurs.desactiver.aucunAutreAdmin')
+                    : null
+                }
               />
               <CarteRadio
                 name="reprise-service"
                 value="sans"
                 checked={mode === 'sans'}
                 onChange={setMode}
-                titre="Laisser le service sans responsable"
-                texte={'Une alerte s’affiche et le filtre « Service sans responsable » regroupe les dossiers concernés.'}
+                titre={tf('admin.utilisateurs.desactiver.laisserSans')}
+                texte={tf('admin.utilisateurs.desactiver.laisserSansTexte')}
               />
             </div>
           )}
@@ -255,8 +286,8 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
             <div>
               <FieldLabel htmlFor="remplacant">
                 {responsableService
-                  ? `Remplaçant (utilisateur actif du service ${service})`
-                  : 'Remplaçant (facultatif)'}
+                  ? tf('admin.utilisateurs.desactiver.remplacantService', { service })
+                  : tf('admin.utilisateurs.desactiver.remplacantFacultatif')}
               </FieldLabel>
               <SelectInput
                 id="remplacant"
@@ -266,7 +297,9 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
                   if (e.target.value) setMode('remplacant')
                 }}
               >
-                {!responsableService && <option value="">Aucun remplaçant</option>}
+                {!responsableService && (
+                  <option value="">{tf('admin.utilisateurs.desactiver.aucunRemplacant')}</option>
+                )}
                 {remplacants.map((c) => (
                   <option key={idDe(c)} value={idDe(c)}>
                     {nomComplet(c)} · {c.libelle_role}

@@ -18,6 +18,10 @@ import ReclasserModal from '../../components/admin/doleance/ReclasserModal'
 import { BadgePortee, Card, Info } from '../../components/admin/doleance/shared'
 import Button from '../../components/ui/Button'
 import adminApi, { extractErrors } from '../../lib/adminApi'
+import {
+  chargerMessagesPredefinis,
+  filtrerModelesParUsages,
+} from '../../lib/messagesPredefinisCache'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
 import { estTousDomaines, estToutesNatures, nomComplet, statutKey } from '../../lib/statuts'
 import { useFormat, useLanguage } from '../../i18n/LanguageContext'
@@ -36,6 +40,7 @@ export default function AdminDoleanceDetail() {
   const [dossierReaffecte, setDossierReaffecte] = useState(null)
   const [statuts, setStatuts] = useState([])
   const [modeles, setModeles] = useState([])
+  const [modelesState, setModelesState] = useState('loading')
   const [notice, setNotice] = useState(null)
   const [modalStatut, setModalStatut] = useState(false)
   const [presetStatut, setPresetStatut] = useState(null)
@@ -90,13 +95,32 @@ export default function AdminDoleanceDetail() {
     return () => window.clearTimeout(t)
   }, [loadState, location.hash, location.key])
 
-  useEffect(() => {
-    adminApi.get('/admin/statuts').then((r) => setStatuts(r.data ?? [])).catch(() => {})
-    adminApi.get('/admin/modeles-message').then((r) => setModeles(r.data ?? [])).catch(() => {})
+  const chargerModeles = useCallback(({ force = false } = {}) => {
+    setModelesState('loading')
+    chargerMessagesPredefinis({ force })
+      .then((liste) => {
+        setModeles(liste)
+        setModelesState('ready')
+      })
+      .catch(() => {
+        setModeles([])
+        setModelesState('error')
+      })
   }, [])
 
-  const modelesReponse = useMemo(() => modeles.filter((m) => m.type_usage === 'reponse'), [modeles])
-  const modelesComplement = useMemo(() => modeles.filter((m) => m.type_usage === 'complement'), [modeles])
+  useEffect(() => {
+    adminApi.get('/admin/statuts').then((r) => setStatuts(r.data ?? [])).catch(() => {})
+    chargerModeles()
+  }, [chargerModeles])
+
+  const modelesReponse = useMemo(
+    () => filtrerModelesParUsages(modeles, ['reponse', 'autre']),
+    [modeles],
+  )
+  const modelesComplement = useMemo(
+    () => filtrerModelesParUsages(modeles, ['complement', 'autre']),
+    [modeles],
+  )
 
   const onDone = (type, text) => {
     setNotice({ type, text })
@@ -364,7 +388,13 @@ export default function AdminDoleanceDetail() {
             onDemanderComplement={() => ouvrirStatut('information_demandee')}
           />
           <Reponses reponses={d.reponses} />
-          <RepondreDemandeur dossier={d} modeles={modelesReponse} onDone={onDone} />
+          <RepondreDemandeur
+            dossier={d}
+            modeles={modelesReponse}
+            modelesState={modelesState}
+            onRetryModeles={() => chargerModeles({ force: true })}
+            onDone={onDone}
+          />
           <NotesInternes dossier={d} onRefresh={() => charger({ silent: true })} />
         </div>
 
@@ -391,6 +421,8 @@ export default function AdminDoleanceDetail() {
         transitions={transitions}
         modelesComplement={modelesComplement}
         modelesReponse={modelesReponse}
+        modelesState={modelesState}
+        onRetryModeles={() => chargerModeles({ force: true })}
         preset={presetStatut}
         onDone={onDone}
         onAnnulerComplement={() => setModalAnnuler(true)}

@@ -57,21 +57,8 @@ export default {
     "subtitle": "Renseignez les champs ci-dessous. Les champs marqués d'un * sont obligatoires.",
     "steps": {
       "label": "Progression du formulaire",
-      "identification": "Identification",
       "informations": "Vos informations",
       "verification": "Vérification"
-    },
-    "nin": {
-      "etape": "Étape 1 — Identification",
-      "title": "Numéro d'identification national (NIN)",
-      "label": "Numéro d'identification national (NIN)",
-      "help": "Le NIN figure sur votre carte d'identité biométrique (18 chiffres).",
-      "placeholder": "000000 000000 000000",
-      "compteur": "{n} / 18",
-      "continuer": "Continuer",
-      "modifier": "Modifier",
-      "resumeLabel": "NIN :",
-      "privacy": "Votre NIN est utilisé uniquement pour vérifier votre identité et n'est pas communiqué à des tiers."
     },
     "personal": {
       "title": "Informations personnelles",
@@ -174,9 +161,6 @@ export default {
     "submitFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
     "errors": {
       "required": "Ce champ est obligatoire.",
-      "ninRequired": "Le NIN est obligatoire.",
-      "ninLength": "Le NIN doit contenir exactement 18 chiffres.",
-      "ninInvalid": "NIN invalide.",
       "nameInvalid": "Format invalide. Lettres, espaces, tirets et apostrophes uniquement.",
       "nameHasDigits": "Le nom ne peut pas contenir de chiffres.",
       "emailInvalid": "Adresse email invalide.",

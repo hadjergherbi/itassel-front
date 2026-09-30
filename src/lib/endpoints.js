@@ -50,6 +50,10 @@ export const endpoints = {
   notifications: () => adminApi.get('/admin/parametres/notifications'),
   sauverNotifications: (body) => adminApi.put('/admin/parametres/notifications', body),
 
+  /** Types d'usage des messages prédéfinis : [{ code, libelle, statuts? }] */
+  messagesPredefinisUsages: () => adminApi.get('/admin/messages-predefinis/usages'),
+  messagesPredefinis: (params) => adminApi.get('/admin/messages-predefinis', { params }),
+
   annulerComplement: (id, body) => adminApi.post(`/admin/complements/${id}/annuler`, body),
 
   logsDashboard: (params) => adminApi.get('/admin/journaux/tableau-de-bord', { params }),

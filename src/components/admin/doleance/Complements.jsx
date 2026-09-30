@@ -4,11 +4,18 @@ import { formatDate, nomComplet } from '../../../lib/statuts'
 import { useLanguage } from '../../../i18n/LanguageContext'
 import { Card, PieceLigne } from './shared'
 
-const ETAT_COMPLEMENT = {
-  en_attente: { label: 'En attente', key: 'information_demandee' },
-  recu: { label: 'Réponse reçue', key: 'en_cours' },
-  examine: { label: 'Examiné', key: 'resolue' },
-  annule: { label: 'Annulé', key: 'cloturee' },
+const ETAT_CLE = {
+  en_attente: 'etatEnAttente',
+  recu: 'etatRecu',
+  examine: 'etatExamine',
+  annule: 'etatAnnule',
+}
+
+const ETAT_STATUS = {
+  en_attente: 'information_demandee',
+  recu: 'en_cours',
+  examine: 'resolue',
+  annule: 'cloturee',
 }
 
 export default function Complements({
@@ -24,7 +31,7 @@ export default function Complements({
 
   return (
     <Card
-      title="Compléments d'information"
+      title={tf('admin.complements.titre')}
       extra={
         peutDemander && onDemanderComplement ? (
           <Button variant="secondary" onClick={onDemanderComplement}>
@@ -34,39 +41,44 @@ export default function Complements({
       }
     >
       {liste.length === 0 ? (
-        <p className="text-sm text-gray-500">{tf('admin.detail.aucunComplement')}</p>
+        <p className="text-sm text-gray-500">
+          {tf('admin.complements.aucunComplement')}
+        </p>
       ) : (
         <ul className="space-y-4">
           {liste.map((c) => {
-            const etat = ETAT_COMPLEMENT[c.etat] ?? { label: c.etat, key: 'default' }
+            const etatCle = ETAT_CLE[c.etat]
+            const statusKey = ETAT_STATUS[c.etat] ?? 'default'
+            const etatLabel = etatCle ? tf(`admin.complements.${etatCle}`) : c.etat
             const annulePar = c.annule_par ?? c.auteur
             return (
               <li key={c.id_complement} className="rounded-[8px] border border-gray-200 p-4">
                 <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-gray-500">
-                    {c.etat === 'annule' ? (
-                      <>
-                        Annulée par {nomComplet(annulePar)} le{' '}
-                        <span className="font-mono">
-                          {formatDate(c.date_annulation ?? c.date_demande)}
-                        </span>
-                      </>
-                    ) : (
-                      <>
-                        Demandé par {nomComplet(c.auteur)} le {formatDate(c.date_demande)}
-                      </>
-                    )}
+                    {c.etat === 'annule'
+                      ? tf('admin.complements.annuleePar', {
+                          nom: nomComplet(annulePar),
+                          date: formatDate(c.date_annulation ?? c.date_demande),
+                        })
+                      : tf('admin.complements.demandePar', {
+                          nom: nomComplet(c.auteur),
+                          date: formatDate(c.date_demande),
+                        })}
                   </p>
-                  <StatusBadge status={etat.key} label={etat.label} />
+                  <StatusBadge status={statusKey} label={etatLabel} />
                 </div>
                 <p className="mb-2 text-sm italic text-gray-800">« {c.question} »</p>
                 {c.piece_exigee && (
-                  <p className="mb-2 text-xs text-gray-600">Pièce exigée : {c.description_piece}</p>
+                  <p className="mb-2 text-xs text-gray-600">
+                    {tf('admin.complements.pieceExigee', { piece: c.description_piece })}
+                  </p>
                 )}
                 {c.reponse && (
                   <div className="mt-3 rounded-[8px] bg-gray-50 px-3 py-2.5">
                     <p className="mb-1 text-xs text-gray-500">
-                      Réponse du demandeur — {formatDate(c.date_reponse)}
+                      {tf('admin.complements.reponseDemandeur', {
+                        date: formatDate(c.date_reponse),
+                      })}
                     </p>
                     <p className="whitespace-pre-line text-sm text-gray-800">{c.reponse}</p>
                   </div>
@@ -80,7 +92,7 @@ export default function Complements({
                 )}
                 {c.etat === 'annule' && c.motif_annulation && (
                   <p className="mt-2 text-sm text-gray-700">
-                    <StatusBadge status="cloturee" label="Interne" />{' '}
+                    <StatusBadge status="cloturee" label={tf('admin.complements.motifInterne')} />{' '}
                     <span className="italic">« {c.motif_annulation} »</span>
                   </p>
                 )}

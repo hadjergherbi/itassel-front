@@ -1,3 +1,5 @@
+import { useLanguage } from '../../i18n/LanguageContext'
+
 export default function DataTable({
   columns,
   rows = [],
@@ -12,6 +14,7 @@ export default function DataTable({
   hoverClassName = 'hover:bg-[#f3faf6]',
   mobileCard,
 }) {
+  const { tf } = useLanguage()
   const pad = compact ? 'px-4 py-3' : 'px-4 py-3.5'
   const groupes = groups?.filter((g) => g.rows?.length) ?? null
   const liste = groupes ? groupes.flatMap((g) => g.rows) : rows
@@ -121,13 +124,15 @@ export default function DataTable({
     <div className="relative">
       {loading && (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-white/60 text-sm text-gray-500">
-          Chargement…
+          {tf('admin.dataTable.chargement')}
         </div>
       )}
       {vide && !loading ? (
-        emptyState || <p className="p-8 text-center text-sm text-gray-500">Aucune donnée.</p>
+        emptyState || (
+          <p className="p-8 text-center text-sm text-gray-500">{tf('admin.dataTable.aucuneDonnee')}</p>
+        )
       ) : vide ? (
-        <p className="p-8 text-center text-sm text-gray-500">Chargement…</p>
+        <p className="p-8 text-center text-sm text-gray-500">{tf('admin.dataTable.chargement')}</p>
       ) : (
         <>
           {cartes}
