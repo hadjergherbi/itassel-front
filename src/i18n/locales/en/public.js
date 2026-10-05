@@ -110,7 +110,7 @@ export default {
       title: 'After sending',
       items: [
         'You receive an email with your tracking reference.',
-        'Your grievance is forwarded to the relevant department.',
+        'Your grievance is forwarded to the relevant department. If the department needs a document, it will ask you by email.',
         'Each status change may be notified to you by email.',
         'To view your file, a verification code is sent to your email.',
       ],
@@ -121,6 +121,7 @@ export default {
     continue: 'Review and continue',
     referentielsError: 'Unable to load the lists (type, capacity, area). Check your connection and try again.',
     submitFailed: 'Sending failed. Check your connection and try again.',
+    langueInvalide: 'The submission language was not accepted. Please try again.',
     errors: {
       required: 'This field is required.',
       nameInvalid: 'Invalid format. Letters, spaces, hyphens and apostrophes only.',
@@ -151,6 +152,12 @@ export default {
     ],
     track: 'Track my request',
     home: 'Back to home',
+    emailsLangue: 'Emails will be sent in {langue}.',
+    langues: {
+      fr: 'French',
+      en: 'English',
+      ar: 'Arabic',
+    },
   },
   track: {
     title: 'Track my request',
@@ -160,13 +167,9 @@ export default {
     refPlaceholder: 'ITS-2026-004821',
     submit: 'Receive a code by email',
     validity: 'The code is valid for 10 minutes and can only be used once.',
-    mockTitle: 'Mock-up preview.',
-    mockBody:
-      'Simulation: no email is sent and no real security check is run. The real rules (code, expiry, session, file access) must be applied on the server.',
     demoCodeLabel: 'Demonstration',
     demoCode: '483 291',
     demoHint: 'code',
-    demoExpire: 'Simulate code expiry',
     sentBanner:
       'If this reference exists, a one-time code has been sent to the file email address. It expires in 10 minutes.',
     codeLabel: 'Code received by email',
@@ -178,7 +181,6 @@ export default {
     codeExpired: 'This code has expired. Request a new code.',
     codeInvalid: 'Incorrect code. Check your email and try again.',
     codeRequired: 'Enter the 6 digits of the code.',
-    verifyOk: 'Code validated (simulation). File access to be connected later.',
     errors: {
       required: 'This field is required.',
       invalid: 'Invalid reference (e.g. ITS-2026-004821).',
@@ -199,7 +201,6 @@ export default {
     messageLabel: 'Message',
     messageCompteur: '{n} / 2000',
     fileLabelRequired: 'Attachment (required)',
-    fileLabelOptional: 'Attachment (optional)',
     noFile: 'No file selected',
     fileHint: 'PDF, JPG or PNG · 5 MB maximum',
     notify: 'The department manager will be notified by email. Each request accepts only one reply.',
@@ -225,23 +226,6 @@ export default {
         date: '04 Sep 2026 — 10:24',
       },
     ],
-    mockTitle: 'Mock-up preview.',
-    mockBody:
-      'Preview of cases that real data may not yet cover (e.g. file with no pending follow-up, optional attachment, cancellation). No file or email is actually sent here.',
-    mockFileLabel: 'Simulated file',
-    mockFiles: {
-      pdf: 'Valid PDF',
-      zip: 'ZIP (rejected)',
-      oversized: '12 MB PDF (rejected)',
-      none: 'None',
-    },
-    mockScenarioLabel: 'Scenario',
-    mockScenarios: {
-      cancel: 'The department cancels the request',
-      required: 'Attachment required',
-      optional: 'Optional attachment',
-      newQuestion: 'New department question',
-    },
     errors: {
       message: 'The message is required.',
       messageTropLong: 'The message cannot exceed 2000 characters.',
@@ -249,10 +233,8 @@ export default {
       fileType: 'Format not accepted. Use PDF, JPG or PNG.',
       fileSize: 'File too large (max. 5 MB).',
       zipRejected: 'ZIP files are not accepted.',
-      oversizedSim: 'Simulated file too large (12 MB).',
     },
     sentOk: 'Your reply has been sent.',
-    cancelled: 'The department cancelled the request for additional information (simulation).',
     sessionExpired: 'Your tracking session has expired or is no longer valid. Start again with your reference.',
     restartTrack: 'Start tracking again',
     loading: 'Loading the file…',

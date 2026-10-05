@@ -3,6 +3,8 @@ import api from './api'
 
 export const endpoints = {
   tableauDeBord: (params) => adminApi.get('/admin/tableau-de-bord', { params }),
+  exportTableauDeBord: (params) =>
+    adminApi.get('/admin/tableau-de-bord/export', { params, responseType: 'blob' }),
   doleances: (params) => adminApi.get('/admin/doleances', { params }),
   doleance: (reference) => adminApi.get(`/admin/doleances/${encodeURIComponent(reference)}`),
   apercuExportDoleances: (params) => adminApi.get('/admin/doleances/export/apercu', { params }),

@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { urlApi } from './urlApi'
 import {
   ADMIN_EXPIRE_KEY,
   ADMIN_LOGOUT_EVENT,
@@ -100,7 +101,7 @@ if (canal) {
 }
 
 const adminApi = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000/api',
+  baseURL: urlApi(),
   headers: { Accept: 'application/json' },
 })
 

@@ -148,7 +148,7 @@ export default {
       "title": "Après l'envoi",
       "items": [
         "Vous recevez un email avec votre référence de suivi.",
-        "Votre doléance est transmise au service concerné.",
+        "Votre doléance est transmise au service concerné. Si le service a besoin d'un document, il vous le demandera par email.",
         "Chaque changement de statut peut vous être notifié par email.",
         "Pour consulter votre dossier, un code de vérification est envoyé à votre email."
       ],
@@ -159,6 +159,7 @@ export default {
     "continue": "Vérifier et continuer",
     "referentielsError": "Impossible de charger les listes (nature, qualité, domaine). Vérifiez votre connexion et réessayez.",
     "submitFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
+    "langueInvalide": "La langue du dépôt n'est pas acceptée. Réessayez.",
     "errors": {
       "required": "Ce champ est obligatoire.",
       "nameInvalid": "Format invalide. Lettres, espaces, tirets et apostrophes uniquement.",
@@ -187,7 +188,13 @@ export default {
       "Vous pouvez recevoir un email à chaque changement de statut. Le suivi se consulte avec votre référence et un code envoyé par email."
     ],
     "track": "Suivre ma demande",
-    "home": "Retour à l'accueil"
+    "home": "Retour à l'accueil",
+    "emailsLangue": "Les emails seront envoyés en {langue}.",
+    "langues": {
+      "fr": "français",
+      "en": "anglais",
+      "ar": "arabe"
+    }
   },
   "track": {
     "title": "Suivre ma demande",
@@ -196,12 +203,9 @@ export default {
     "refPlaceholder": "ITS-2026-004821",
     "submit": "Recevoir un code par email",
     "validity": "Le code est valable 10 minutes et ne peut être utilisé qu'une fois.",
-    "mockTitle": "Aperçu de maquette.",
-    "mockBody": "Simulation : aucun email n'est envoyé et aucun contrôle de sécurité réel n'est exécuté. Les règles réelles (code, expiration, session, accès aux fichiers) doivent être appliquées côté serveur.",
     "demoCodeLabel": "Démonstration",
     "demoCode": "483 291",
     "demoHint": "code",
-    "demoExpire": "Simuler l'expiration du code",
     "sentBanner": "Si cette référence existe, un code à usage unique a été envoyé à l'adresse email du dossier. Il expire dans 10 minutes.",
     "codeLabel": "Code reçu par email",
     "verify": "Vérifier le code",
@@ -212,7 +216,6 @@ export default {
     "codeExpired": "Ce code a expiré. Demandez un nouveau code.",
     "codeInvalid": "Code incorrect. Vérifiez votre email et réessayez.",
     "codeRequired": "Saisissez les 6 chiffres du code.",
-    "verifyOk": "Code validé (simulation). Accès au dossier à brancher prochainement.",
     "errors": {
       "required": "Ce champ est obligatoire.",
       "invalid": "Référence invalide (ex. ITS-2026-004821)."
@@ -233,7 +236,6 @@ export default {
     "messageLabel": "Message",
     "messageCompteur": "{n} / 2000",
     "fileLabelRequired": "Pièce jointe (obligatoire)",
-    "fileLabelOptional": "Pièce jointe (facultative)",
     "noFile": "Aucun fichier sélectionné",
     "fileHint": "PDF, JPG ou PNG · 5 Mo maximum",
     "notify": "Le responsable du service sera prévenu par email. Chaque demande n'accepte qu'une réponse.",
@@ -259,33 +261,15 @@ export default {
         "date": "04 sept. 2026 — 10:24"
       }
     ],
-    "mockTitle": "Aperçu de maquette.",
-    "mockBody": "Prévisualisation de cas que les données réelles ne couvrent pas encore forcément (ex. dossier sans complément en attente, pièce facultative, annulation). Aucun fichier ni email n'est réellement transmis ici.",
-    "mockFileLabel": "Fichier simulé",
-    "mockFiles": {
-      "pdf": "PDF valide",
-      "zip": "ZIP (refusé)",
-      "oversized": "PDF 12 Mo (refusé)",
-      "none": "Aucun"
-    },
-    "mockScenarioLabel": "Scénario",
-    "mockScenarios": {
-      "cancel": "Le service annule la demande",
-      "required": "Pièce exigée",
-      "optional": "Pièce facultative",
-      "newQuestion": "Nouvelle question du service"
-    },
     "errors": {
       "message": "Le message est obligatoire.",
       "messageTropLong": "Le message ne peut pas dépasser 2000 caractères.",
       "fileRequired": "Une pièce jointe est obligatoire pour cette demande.",
       "fileType": "Format non accepté. Utilisez PDF, JPG ou PNG.",
       "fileSize": "Fichier trop volumineux (max. 5 Mo).",
-      "zipRejected": "Les fichiers ZIP ne sont pas acceptés.",
-      "oversizedSim": "Fichier simulé trop volumineux (12 Mo)."
+      "zipRejected": "Les fichiers ZIP ne sont pas acceptés."
     },
     "sentOk": "Votre réponse a bien été envoyée.",
-    "cancelled": "Le service a annulé la demande de complément (simulation).",
     "sessionExpired": "Votre session de suivi a expiré ou n’est plus valide. Recommencez avec votre référence.",
     "restartTrack": "Recommencer le suivi",
     "loading": "Chargement du dossier…",

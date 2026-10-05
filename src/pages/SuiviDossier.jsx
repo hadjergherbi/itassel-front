@@ -218,7 +218,7 @@ export default function SuiviDossier() {
 
   const attachmentRequired = Boolean(pendingComplement?.piece_exigee)
   const attachmentName = pendingComplement?.description_piece || ''
-  const showAttachmentHint = Boolean(attachmentName) || attachmentRequired
+  const showAttachmentHint = attachmentRequired
   const showForm =
     Boolean(pendingComplement) && pendingComplement.id_complement !== answeredId
 
@@ -229,9 +229,8 @@ export default function SuiviDossier() {
   const badgeLabel = statutLabel(dossier?.statut, lang)
 
   const validateFile = (next) => {
-    if (!next) {
-      return attachmentRequired ? t.dossier.errors.fileRequired : ''
-    }
+    if (!attachmentRequired) return ''
+    if (!next) return t.dossier.errors.fileRequired
     if (next.type === 'application/zip' || /\.zip$/i.test(next.name)) {
       return t.dossier.errors.zipRejected
     }
@@ -262,7 +261,7 @@ export default function SuiviDossier() {
 
     const body = new FormData()
     body.append('message', msg)
-    if (file instanceof File) body.append('piece_jointe', file)
+    if (attachmentRequired && file instanceof File) body.append('piece_jointe', file)
 
     setIsSubmitting(true)
     setNotice(null)
@@ -319,11 +318,15 @@ export default function SuiviDossier() {
       if (status === 422) {
         const apiErrors = err.response.data?.errors ?? {}
         const first = (v) => (Array.isArray(v) ? v[0] : v)
+        const pieceMsg = apiErrors.piece_jointe ? first(apiErrors.piece_jointe) : ''
         setErrors((prev) => ({
           ...prev,
-          ...(apiErrors.piece_jointe ? { file: first(apiErrors.piece_jointe) } : {}),
+          ...(pieceMsg && attachmentRequired ? { file: pieceMsg } : {}),
           ...(apiErrors.message ? { message: first(apiErrors.message) } : {}),
         }))
+        if (pieceMsg && !attachmentRequired) {
+          setNotice({ type: 'error', text: pieceMsg })
+        }
         return
       }
 
@@ -508,36 +511,36 @@ export default function SuiviDossier() {
                           <FieldError message={errors.message} />
                         </div>
 
-                        <div className="mb-5">
-                          <FieldLabel htmlFor="reponse-file" required={attachmentRequired}>
-                            {attachmentRequired
-                              ? t.dossier.fileLabelRequired
-                              : t.dossier.fileLabelOptional}
-                          </FieldLabel>
+                        {attachmentRequired && (
+                          <div className="mb-5">
+                            <FieldLabel htmlFor="reponse-file" required>
+                              {t.dossier.fileLabelRequired}
+                            </FieldLabel>
 
-                          <div className="flex flex-wrap items-center gap-3">
-                            <label
-                              htmlFor="reponse-file"
-                              className={[
-                                'inline-flex cursor-pointer items-center gap-2 rounded-[8px] border bg-white px-3 py-2.5 text-sm transition hover:bg-gray-50',
-                                errors.file ? 'border-red-400' : 'border-gray-300',
-                              ].join(' ')}
-                            >
-                              <Paperclip className="h-4 w-4 text-gray-500" aria-hidden />
-                              <span className="text-gray-700">{file?.name || t.dossier.noFile}</span>
-                            </label>
-                            <input
-                              ref={fileRef}
-                              id="reponse-file"
-                              type="file"
-                              accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
-                              className="sr-only"
-                              onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
-                            />
-                            <p className="text-xs text-gray-500">{t.dossier.fileHint}</p>
+                            <div className="flex flex-wrap items-center gap-3">
+                              <label
+                                htmlFor="reponse-file"
+                                className={[
+                                  'inline-flex cursor-pointer items-center gap-2 rounded-[8px] border bg-white px-3 py-2.5 text-sm transition hover:bg-gray-50',
+                                  errors.file ? 'border-red-400' : 'border-gray-300',
+                                ].join(' ')}
+                              >
+                                <Paperclip className="h-4 w-4 text-gray-500" aria-hidden />
+                                <span className="text-gray-700">{file?.name || t.dossier.noFile}</span>
+                              </label>
+                              <input
+                                ref={fileRef}
+                                id="reponse-file"
+                                type="file"
+                                accept=".pdf,.jpg,.jpeg,.png,application/pdf,image/jpeg,image/png"
+                                className="sr-only"
+                                onChange={(e) => onPickFile(e.target.files?.[0] ?? null)}
+                              />
+                              <p className="text-xs text-gray-500">{t.dossier.fileHint}</p>
+                            </div>
+                            <FieldError message={errors.file} />
                           </div>
-                          <FieldError message={errors.file} />
-                        </div>
+                        )}
 
                         <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
                           <p className="flex max-w-md items-start gap-2 text-xs leading-relaxed text-gray-500">

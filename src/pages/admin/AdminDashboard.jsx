@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, ChevronRight } from 'lucide-react'
+import { ArrowRight, CheckCircle2, ChevronRight, Download, Loader2 } from 'lucide-react'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
-import adminApi from '../../lib/adminApi'
+import adminApi, { extractBlobErrors } from '../../lib/adminApi'
+import { nomFichierReponse, telechargerBlob } from '../../lib/telechargement'
 import {
   COULEURS_STATUT,
   nomComplet,
@@ -21,6 +22,7 @@ import StackedBar from '../../components/ui/StackedBar'
 import StatusBadge from '../../components/StatusBadge'
 import HorizontalBarList from '../../components/ui/HorizontalBarList'
 import Tabs from '../../components/ui/Tabs'
+import { useToast } from '../../components/ui/Toast'
 import { useFormat, useLanguage } from '../../i18n/LanguageContext'
 import { formatNombre } from '../../i18n/format'
 
@@ -74,6 +76,52 @@ function PastilleAge({ jours, niveau }) {
 
 function Skeleton({ className }) {
   return <div className={`animate-pulse rounded-[8px] bg-gray-200 ${className}`} />
+}
+
+function BoutonExportTableau({ periode }) {
+  const { tf, lang } = useLanguage()
+  const toast = useToast()
+  const [enCours, setEnCours] = useState(false)
+
+  const exporter = async () => {
+    if (enCours) return
+    setEnCours(true)
+    try {
+      const res = await endpoints.exportTableauDeBord({ periode })
+      const type = String(res.headers['content-type'] ?? '')
+      if (type.includes('application/json')) {
+        const json = JSON.parse(await res.data.text())
+        toast.show('error', json.message || tf('admin.dashboard.export.erreur'))
+        return
+      }
+      const nom = telechargerBlob(
+        res.data,
+        nomFichierReponse(res.headers, `tableau-de-bord_${periode}.pdf`),
+      )
+      toast.show('success', tf('admin.dashboard.export.succes', { nom }))
+    } catch (err) {
+      if (err.response?.status === 401) return
+      const { message } = await extractBlobErrors(err, tf('admin.dashboard.export.erreur'), lang)
+      const texte =
+        typeof message === 'string' && message !== '[object Blob]'
+          ? message
+          : tf('admin.dashboard.export.erreur')
+      toast.show('error', texte)
+    } finally {
+      setEnCours(false)
+    }
+  }
+
+  return (
+    <Button variant="secondary" onClick={exporter} disabled={enCours} aria-busy={enCours}>
+      {enCours ? (
+        <Loader2 className="h-4 w-4 animate-spin" aria-hidden />
+      ) : (
+        <Download className="h-4 w-4" aria-hidden />
+      )}
+      {enCours ? tf('admin.dashboard.export.chargement') : tf('admin.dashboard.export.bouton')}
+    </Button>
+  )
 }
 
 function SelecteurPeriode({ valeur, onChange }) {
@@ -175,6 +223,8 @@ export default function AdminDashboard() {
 function DashboardSuperAdmin({ data, periode, onPeriode }) {
   const { tf } = useLanguage()
   const { formatDate } = useFormat()
+  const { peut } = useAdminAuth()
+  const peutExporter = peut('tableau_de_bord.global')
   const indicateurs = data?.indicateurs ?? {}
   const vue = data?.vue_globale ?? {}
   const attente = Number(vue.reaffectations_en_attente ?? data?.reaffectations_en_attente ?? 0)
@@ -191,7 +241,12 @@ function DashboardSuperAdmin({ data, periode, onPeriode }) {
       <PageHeader
         title={tf('admin.dashboard.vueGlobale')}
         subtitle={tf('admin.dashboard.tousServices')}
-        actions={<SelecteurPeriode valeur={periode} onChange={onPeriode} />}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            {peutExporter && <BoutonExportTableau periode={periode} />}
+            <SelecteurPeriode valeur={periode} onChange={onPeriode} />
+          </div>
+        }
       />
       {attente > 0 && (
         <AlertBanner

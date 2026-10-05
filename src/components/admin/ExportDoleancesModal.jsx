@@ -6,7 +6,8 @@ import { FieldError, FieldHelp, FieldLabel, TextInput } from '../FormFields'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
 import { useToast } from '../ui/Toast'
 import { endpoints } from '../../lib/endpoints'
-import { extractBlobErrors, extractErrors, nomDepuisDisposition } from '../../lib/adminApi'
+import { extractBlobErrors, extractErrors } from '../../lib/adminApi'
+import { nomFichierReponse, telechargerBlob } from '../../lib/telechargement'
 import {
   datesPourPeriode,
   formatDateNumeric,
@@ -176,15 +177,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
         return
       }
       const fallback = `doleances_${slugService(service)}_${dateDebut}_${dateFin}.${format}`
-      const nom = nomDepuisDisposition(res.headers['content-disposition'], fallback)
-      const url = URL.createObjectURL(res.data)
-      const lien = document.createElement('a')
-      lien.href = url
-      lien.download = nom
-      document.body.appendChild(lien)
-      lien.click()
-      lien.remove()
-      setTimeout(() => URL.revokeObjectURL(url), 1000)
+      const nom = telechargerBlob(res.data, nomFichierReponse(res.headers, fallback))
       toast.show('success', tf('admin.export.telecharge', { nom }))
       onClose()
     } catch (err) {

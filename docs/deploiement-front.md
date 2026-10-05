@@ -118,6 +118,33 @@ server {
 }
 ```
 
+## Exemple nginx (API `api.exemple.dz`)
+
+Le bloc ci-dessous reprend la politique demandée pour un front servi seul, avec repli SPA. `index.html` charge encore IBM Plex depuis Google Fonts : cette CSP stricte bloque ces polices. Tant que les polices Google restent dans `index.html`, utilisez la variante de la section Nginx (qui autorise `fonts.googleapis.com` et `fonts.gstatic.com`).
+
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name itassel.exemple.dz;
+    root /var/www/itassel/dist;
+    index index.html;
+
+    add_header Content-Security-Policy "default-src 'self'; connect-src 'self' https://api.exemple.dz; img-src 'self' data:; frame-ancestors 'none'" always;
+    add_header X-Content-Type-Options "nosniff" always;
+    add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+## Limites connues
+
+Le jeton d’administration est conservé dans `localStorage` (`src/lib/securite.js`, `src/lib/adminApi.js`). C’est un choix assumé : expiration à 8 heures et déconnexion après inactivité sont déjà en place.
+
+Un cookie `HttpOnly` + `Secure` + `SameSite` n’est pas lisible par le JavaScript de la page. Un jeton en `localStorage` l’est : tout script qui s’exécute dans l’origine (faille XSS) peut le lire et l’exfiltrer. La CSP ci-dessus réduit cette surface (pas de script tiers, pas d’iframe parente, images limitées à l’origine et à `data:`), elle ne remplace pas un cookie `HttpOnly`. Aucun `dangerouslySetInnerHTML` ni `innerHTML` n’est utilisé dans `src/`.
+
 ## Vérification après `npm run build`
 
 1. Ouvrir `dist/index.html` : aucun `<script>` inline (`onclick=`, `javascript:`, ou bloc `<script>` sans `src`).

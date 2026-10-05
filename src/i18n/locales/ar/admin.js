@@ -187,6 +187,12 @@ export default {
   dashboard: {
     erreur: 'تعذّر تحميل لوحة القيادة.',
     retry: 'إعادة المحاولة',
+    export: {
+      bouton: 'تصدير بصيغة PDF',
+      chargement: 'جارٍ التصدير…',
+      succes: 'تم تصدير الإحصائيات: {nom}',
+      erreur: 'تعذّر تصدير لوحة القيادة.',
+    },
     vueGlobale: 'نظرة عامة',
     tousServices: 'كل المصالح',
     voir: 'عرض',

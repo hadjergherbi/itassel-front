@@ -187,6 +187,12 @@ export default {
   dashboard: {
     erreur: 'Unable to load the dashboard.',
     retry: 'Try again',
+    export: {
+      bouton: 'Export as PDF',
+      chargement: 'Export in progress…',
+      succes: 'Statistics exported: {nom}',
+      erreur: 'The dashboard export failed.',
+    },
     vueGlobale: 'Overview',
     tousServices: 'All departments',
     voir: 'View',

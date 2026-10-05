@@ -30,7 +30,7 @@ function formatDepositDate(iso, lang) {
 }
 
 export default function ConfirmationDepot() {
-  const { t, lang, isRtl } = useLanguage()
+  const { t, tf, lang, isRtl } = useLanguage()
   const location = useLocation()
   const Arrow = isRtl ? ArrowLeft : ArrowRight
   const [copyState, setCopyState] = useState('idle')
@@ -79,12 +79,17 @@ export default function ConfirmationDepot() {
           {t.confirmation.title}
         </h1>
 
-        <p className="mb-8 max-w-xl text-center text-sm leading-relaxed text-gray-600 sm:text-base">
+        <p className="mb-3 max-w-xl text-center text-sm leading-relaxed text-gray-600 sm:text-base">
           {t.confirmation.emailPrefix}{' '}
           <span className="font-medium text-gray-800" dir="ltr">
             {email}
           </span>
           {`. ${t.confirmation.emailSuffix}`}
+        </p>
+        <p className="mb-8 max-w-xl text-center text-sm leading-relaxed text-gray-600">
+          {tf('confirmation.emailsLangue', {
+            langue: t.confirmation.langues[['fr', 'en', 'ar'].includes(lang) ? lang : 'fr'],
+          })}
         </p>
 
         {/* Référence */}

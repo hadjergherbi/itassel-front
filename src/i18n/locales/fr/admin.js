@@ -187,6 +187,12 @@ export default {
   dashboard: {
     erreur: 'Impossible de charger le tableau de bord.',
     retry: 'Réessayer',
+    export: {
+      bouton: 'Exporter en PDF',
+      chargement: 'Export en cours…',
+      succes: 'Statistiques exportées : {nom}',
+      erreur: 'L’export du tableau de bord a échoué.',
+    },
     vueGlobale: 'Vue globale',
     tousServices: 'Tous services confondus',
     voir: 'Voir',

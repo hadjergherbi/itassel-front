@@ -364,6 +364,7 @@ export default function DeposerDoleance() {
       }
       formData.append('jeton_formulaire', jeton)
       formData.append('site_web', siteWeb)
+      formData.append('langue', ['fr', 'en', 'ar'].includes(lang) ? lang : 'fr')
 
       // axios ne résout la promesse que pour une réponse 2xx :
       // on ne dépend donc pas d'un code 201 précis.
@@ -390,7 +391,11 @@ export default function DeposerDoleance() {
       const messageApi = err.response?.data?.message
 
       if (status === 422 && apiErrors && Object.keys(apiErrors).length) {
-        applyLaravelErrors(traduireChampsApi(apiErrors, lang))
+        const { langue: erreurLangue, ...reste } = apiErrors
+        if (erreurLangue) setSubmitError(t.deposit.langueInvalide)
+        if (Object.keys(reste).length) {
+          applyLaravelErrors(traduireChampsApi(reste, lang))
+        }
       } else if (status === 422) {
         setAntiSpam(true)
         setSubmitError(
