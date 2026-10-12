@@ -1,4 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import axios from 'axios'
 import adminApi, {
   ADMIN_LOGOUT_EVENT,
   clearToken,
@@ -20,37 +21,54 @@ export function AdminAuthProvider({ children }) {
   const [utilisateur, setUtilisateur] = useState(null)
   const [expireLe, setExpireLe] = useState(() => (sessionEncoreValide() ? readExpireLe() : null))
   const [status, setStatus] = useState(() => (sessionEncoreValide() ? 'checking' : 'anonymous'))
+  const [erreurChargement, setErreurChargement] = useState(false)
+  const essaiSession = useRef(0)
 
-  useEffect(() => {
-    if (!sessionEncoreValide()) return undefined
-    let cancelled = false
-
-    adminApi
-      .get('/admin/me')
-      .then((res) => {
-        if (cancelled) return
-        setUtilisateur(res.data)
-        setExpireLe(readExpireLe())
-        setStatus('authenticated')
-        resetDeconnexionEnCours()
-      })
-      .catch(() => {
-        if (cancelled) return
+  const verifierSession = useCallback(async () => {
+    if (!sessionEncoreValide()) {
+      setErreurChargement(false)
+      setStatus('anonymous')
+      return
+    }
+    const id = ++essaiSession.current
+    setStatus('checking')
+    setErreurChargement(false)
+    try {
+      const res = await adminApi.get('/admin/me')
+      if (essaiSession.current !== id) return
+      setUtilisateur(res.data)
+      setExpireLe(readExpireLe())
+      setStatus('authenticated')
+      setErreurChargement(false)
+      resetDeconnexionEnCours()
+    } catch (err) {
+      if (essaiSession.current !== id || axios.isCancel(err)) return
+      if (err.response?.status === 401) {
         clearToken()
         setUtilisateur(null)
         setExpireLe(null)
+        setErreurChargement(false)
         setStatus('anonymous')
-      })
-
-    return () => {
-      cancelled = true
+        return
+      }
+      setErreurChargement(true)
+      setStatus('error')
     }
   }, [])
+
+  useEffect(() => {
+    if (!sessionEncoreValide()) return undefined
+    verifierSession()
+    return () => {
+      essaiSession.current += 1
+    }
+  }, [verifierSession])
 
   useEffect(() => {
     const onLogout = () => {
       setUtilisateur(null)
       setExpireLe(null)
+      setErreurChargement(false)
       setStatus('anonymous')
     }
     window.addEventListener(ADMIN_LOGOUT_EVENT, onLogout)
@@ -120,6 +138,8 @@ export function AdminAuthProvider({ children }) {
       utilisateur,
       status,
       expireLe,
+      erreurChargement,
+      reessayerSession: verifierSession,
       estSuperAdmin,
       peut,
       login,
@@ -127,7 +147,7 @@ export function AdminAuthProvider({ children }) {
       rafraichirProfil,
       majProfil,
     }),
-    [utilisateur, status, expireLe, estSuperAdmin, peut, login, logout, rafraichirProfil, majProfil],
+    [utilisateur, status, expireLe, erreurChargement, estSuperAdmin, peut, login, logout, rafraichirProfil, majProfil, verifierSession],
   )
 
   return <AdminAuthContext.Provider value={value}>{children}</AdminAuthContext.Provider>

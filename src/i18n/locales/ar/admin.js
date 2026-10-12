@@ -80,6 +80,9 @@ export default {
       other: '{n} قواعد من 5 محترمة',
     },
   },
+  session: {
+    serveurInjoignable: 'تعذّر الاتصال بالخادم',
+  },
   layout: {
     tableauDeBord: 'لوحة القيادة',
     doleances: 'العرائض والشكاوى',
@@ -969,6 +972,10 @@ export default {
     succes: 'أُعيد تصنيف الملف.',
     echec: 'فشلت إعادة التصنيف.',
     choisirIssue: 'اختاروا النتيجة الجديدة.',
+    motifLabel: 'السبب',
+    motifRequis: 'أدخلوا سبب إعادة التصنيف.',
+    motifTropLong: 'لا يمكن أن يتجاوز السبب {max} حرفاً.',
+    compteur: '{n} / {max}',
   },
   repondreDemandeur: {
     titre: 'الرد على صاحب الطلب',

@@ -80,6 +80,9 @@ export default {
       other: '{n} règles sur 5 respectées',
     },
   },
+  session: {
+    serveurInjoignable: 'Impossible de joindre le serveur',
+  },
   layout: {
     tableauDeBord: 'Tableau de bord',
     doleances: 'Doléances',
@@ -968,6 +971,10 @@ export default {
     succes: 'Le dossier a été reclassé.',
     echec: 'Le reclassement a échoué.',
     choisirIssue: 'Choisissez la nouvelle issue.',
+    motifLabel: 'Motif',
+    motifRequis: 'Indiquez le motif du reclassement.',
+    motifTropLong: 'Le motif ne peut pas dépasser {max} caractères.',
+    compteur: '{n} / {max}',
   },
   repondreDemandeur: {
     titre: 'Répondre au demandeur',

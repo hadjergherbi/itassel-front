@@ -80,6 +80,9 @@ export default {
       other: '{n} of 5 rules met',
     },
   },
+  session: {
+    serveurInjoignable: 'Unable to reach the server',
+  },
   layout: {
     tableauDeBord: 'Dashboard',
     doleances: 'Grievances',
@@ -969,6 +972,10 @@ export default {
     succes: 'The file has been reclassified.',
     echec: 'Reclassification failed.',
     choisirIssue: 'Choose the new outcome.',
+    motifLabel: 'Reason',
+    motifRequis: 'Enter the reason for reclassification.',
+    motifTropLong: 'The reason cannot exceed {max} characters.',
+    compteur: '{n} / {max}',
   },
   repondreDemandeur: {
     titre: 'Reply to the requester',
