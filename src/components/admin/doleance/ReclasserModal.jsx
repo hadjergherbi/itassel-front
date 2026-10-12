@@ -2,27 +2,25 @@
 import Modal from '../Modal'
 import Button from '../../ui/Button'
 import StatusBadge from '../../StatusBadge'
-import { FieldError } from '../../FormFields'
+import { FieldError, FieldHelp, FieldLabel, TextArea } from '../../FormFields'
 import { endpoints } from '../../../lib/endpoints'
 import { extractErrors } from '../../../lib/adminApi'
-import { CODES_CONCLUSION, issuesAutorisees, natureCode, statutKey } from '../../../lib/statuts'
+import { statutKey } from '../../../lib/statuts'
 import { useLanguage } from '../../../i18n/LanguageContext'
+
+const MOTIF_MAX = 2000
 
 export default function ReclasserModal({ open, onClose, dossier, transitions = [], onDone }) {
   const { tf, lang } = useLanguage()
   const [idStatut, setIdStatut] = useState('')
+  const [motif, setMotif] = useState('')
   const [errors, setErrors] = useState({})
   const [busy, setBusy] = useState(false)
-
-  const autorisees = issuesAutorisees(natureCode(dossier?.nature)).map((i) => i.alias)
-  const choix = transitions.filter((s) => {
-    const key = statutKey(s)
-    return CODES_CONCLUSION.includes(key) && (autorisees.length === 0 || autorisees.includes(key))
-  })
 
   useEffect(() => {
     if (!open) return
     setIdStatut('')
+    setMotif('')
     setErrors({})
     setBusy(false)
   }, [open])
@@ -30,13 +28,22 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
   const submit = async (e) => {
     e.preventDefault()
     if (busy) return
-    if (!idStatut) {
-      setErrors({ id_statut: tf('admin.reclasser.choisirIssue') })
-      return
+    const next = {}
+    if (!idStatut) next.id_statut = tf('admin.reclasser.choisirIssue')
+    const motifTrim = motif.trim()
+    if (!motifTrim) next.motif = tf('admin.reclasser.motifRequis')
+    else if (motifTrim.length > MOTIF_MAX) {
+      next.motif = tf('admin.reclasser.motifTropLong', { max: MOTIF_MAX })
     }
+    setErrors(next)
+    if (Object.keys(next).length) return
+
     setBusy(true)
     try {
-      const res = await endpoints.reclasser(dossier.reference, { id_statut: Number(idStatut) })
+      const res = await endpoints.reclasser(dossier.reference, {
+        id_statut: Number(idStatut),
+        motif: motifTrim,
+      })
       onDone('success', res.data?.message || tf('admin.reclasser.succes'))
       onClose()
     } catch (err) {
@@ -75,7 +82,7 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
           {tf('admin.reclasser.intro', { nature: dossier?.nature?.libelle ?? '—' })}
         </p>
         <div className="grid gap-3 sm:grid-cols-2">
-          {choix.map((s) => {
+          {transitions.map((s) => {
             const selected = String(s.id_statut) === String(idStatut)
             return (
               <label
@@ -91,7 +98,10 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
                   className="h-4 w-4 accent-[#006b3f]"
                   checked={selected}
                   disabled={busy}
-                  onChange={() => setIdStatut(String(s.id_statut))}
+                  onChange={() => {
+                    setIdStatut(String(s.id_statut))
+                    if (errors.id_statut) setErrors((prev) => ({ ...prev, id_statut: '' }))
+                  }}
                 />
                 <StatusBadge status={statutKey(s)} label={s.libelle} showDot />
               </label>
@@ -99,6 +109,29 @@ export default function ReclasserModal({ open, onClose, dossier, transitions = [
           })}
         </div>
         <FieldError message={errors.id_statut} />
+
+        <div>
+          <FieldLabel htmlFor="reclasser-motif" required>
+            {tf('admin.reclasser.motifLabel')}
+          </FieldLabel>
+          <TextArea
+            id="reclasser-motif"
+            rows={4}
+            className="min-h-[100px]"
+            maxLength={MOTIF_MAX}
+            value={motif}
+            disabled={busy}
+            onChange={(e) => {
+              setMotif(e.target.value.slice(0, MOTIF_MAX))
+              if (errors.motif) setErrors((prev) => ({ ...prev, motif: '' }))
+            }}
+            error={errors.motif}
+          />
+          <FieldHelp>
+            {tf('admin.reclasser.compteur', { n: motif.length, max: MOTIF_MAX })}
+          </FieldHelp>
+          <FieldError message={errors.motif} />
+        </div>
       </form>
     </Modal>
   )
