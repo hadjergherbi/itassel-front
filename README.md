@@ -107,3 +107,9 @@ src/
 ## Backend
 
 L’API est un projet Laravel distinct de ce dépôt. Il n’y a pas d’URL publique figée ici : clonez le dépôt indiqué par l’équipe, démarrez-le, puis réglez `VITE_API_URL` sur son préfixe `/api`.
+
+## Sécurité — jeton d’administration
+
+Le jeton de session du back-office est enregistré dans `localStorage` (clé `itassel_admin_token`). N’importe quel script exécuté dans la page peut le lire : une faille XSS suffit à le voler et à l’utiliser comme l’agent connecté. Ce choix n’est pas modifié ici ; un cookie `HttpOnly` demanderait un changement du contrat avec l’API.
+
+Le code ne passe pas de HTML brut au navigateur : aucun `dangerouslySetInnerHTML`, aucune affectation `innerHTML`. React échappe le texte affiché. Ne pas introduire de HTML construit à partir de données de l’API ou de saisies utilisateur.
