@@ -3,7 +3,7 @@ import { KeyRound, Mail, Pencil, Plus, Trash2 } from 'lucide-react'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { extractErrors } from '../../lib/adminApi'
-import { message409, nomComplet } from '../../lib/statuts'
+import { estTousDomaines, message409, nomComplet } from '../../lib/statuts'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
@@ -20,7 +20,7 @@ import { FieldError, FieldLabel, SelectInput, TextInput } from '../../components
 import { useToast } from '../../components/ui/Toast'
 import { useLanguage } from '../../i18n/LanguageContext'
 import { libelleService } from '../../lib/libelles'
-import { servicePrincipal, servicesDe } from '../../lib/services'
+import { servicePrincipal, servicesDe, servicesOrdonnes } from '../../lib/services'
 import SelecteurServices, { MAX_SERVICES } from '../../components/admin/SelecteurServices'
 
 const VIDE = {
@@ -64,6 +64,42 @@ function etatLibelle(tf, etat) {
   return traduit !== cle ? traduit : etat
 }
 
+function PucesServices({ utilisateur }) {
+  const { tf, lang } = useLanguage()
+  if (utilisateur.role === 'super_admin') return tf('admin.utilisateurs.tousServices')
+  const liste = servicesOrdonnes(utilisateur)
+  if (!liste.length) return '—'
+  const visibles = liste.slice(0, 2)
+  const reste = liste.length - visibles.length
+  const tous = liste.map((s) => libelleService(s, lang)).filter(Boolean).join(', ')
+  return (
+    <span className="inline-flex flex-wrap items-center gap-1">
+      {visibles.map((s, index) => (
+        <span
+          key={s.id_service}
+          title={index === 0 ? tf('admin.utilisateurs.servicePrincipal') : undefined}
+          className={
+            index === 0
+              ? 'rounded-full bg-[#e6f6ed] px-2 py-0.5 text-xs font-medium text-institutional'
+              : 'rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700'
+          }
+        >
+          {libelleService(s, lang)}
+        </span>
+      ))}
+      {reste > 0 && (
+        <span
+          className="text-xs font-medium text-gray-500"
+          title={tous}
+          aria-label={tf('admin.utilisateurs.autresServices', { n: reste, liste: tous })}
+        >
+          +{reste}
+        </span>
+      )}
+    </span>
+  )
+}
+
 function badgeEtat(tf, etat) {
   const label = etatLibelle(tf, etat)
   const tone =
@@ -83,8 +119,9 @@ export default function AdminUtilisateurs() {
   const { utilisateur: moi } = useAdminAuth()
   const toast = useToast()
   const [page, setPage] = useState(1)
+  const [filtreService, setFiltreService] = useState('')
   const { data, loadState, erreur, reload } = useAdminQuery('/admin/utilisateurs', {
-    params: { page },
+    params: { page, service: filtreService || undefined },
     fetcher: (p) => endpoints.utilisateurs(p),
   })
   const { data: rolesData } = useAdminQuery('/admin/roles', { fetcher: () => endpoints.roles() })
@@ -223,10 +260,7 @@ export default function AdminUtilisateurs() {
     {
       id: 'service',
       header: tf('admin.monCompte.service'),
-      cell: (u) =>
-        u.role === 'super_admin'
-          ? tf('admin.utilisateurs.tousServices')
-          : libelleService(u.service?.nom_service ?? u.service?.nom, lang) || '—',
+      cell: (u) => <PucesServices utilisateur={u} />,
     },
     {
       id: 'actif',
@@ -323,6 +357,26 @@ export default function AdminUtilisateurs() {
       />
       <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="overflow-hidden rounded-[8px] border border-gray-200 bg-white shadow-sm">
+          <div className="border-b border-gray-100 px-4 py-3">
+            <FieldLabel htmlFor="filtre-service">{tf('admin.utilisateurs.filtrerService')}</FieldLabel>
+            <SelectInput
+              id="filtre-service"
+              value={filtreService}
+              onChange={(e) => {
+                setFiltreService(e.target.value)
+                setPage(1)
+              }}
+            >
+              <option value="">{tf('admin.utilisateurs.tousServices')}</option>
+              {services
+                .filter((s) => !estTousDomaines(s))
+                .map((s) => (
+                  <option key={s.id_service} value={String(s.id_service)}>
+                    {libelleService(s, lang)}
+                  </option>
+                ))}
+            </SelectInput>
+          </div>
           <DataTable
             columns={colonnes}
             rows={utilisateurs}

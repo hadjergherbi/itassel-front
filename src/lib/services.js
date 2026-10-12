@@ -21,16 +21,22 @@ export function servicePrincipal(utilisateur) {
   return liste.find((s) => s.principal) ?? liste[0] ?? null
 }
 
-/** Noms traduits, service principal en premier. */
-export function nomsServices(utilisateur, lang) {
+/** Principal d'abord, puis les autres dans l'ordre reçu. */
+export function servicesOrdonnes(utilisateur) {
   const liste = servicesDe(utilisateur)
   const principal = servicePrincipal(utilisateur)
   const idPrincipal = principal?.id_service
-  const ordonnes = [
+  return [
     ...(principal ? [principal] : []),
     ...liste.filter((s) => s.id_service !== idPrincipal),
   ]
-  return ordonnes.map((s) => libelleService(s, lang)).filter(Boolean)
+}
+
+/** Noms traduits, service principal en premier. */
+export function nomsServices(utilisateur, lang) {
+  return servicesOrdonnes(utilisateur)
+    .map((s) => libelleService(s, lang))
+    .filter(Boolean)
 }
 
 /** Ex. « Sport, Jeunesse +1 » lorsque la liste dépasse `max`. */

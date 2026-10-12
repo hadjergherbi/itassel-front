@@ -601,6 +601,11 @@ export default {
     serviceMax: 'عشر مصالح كحد أقصى.',
     retirerService: 'إزالة {nom}',
     servicesChoisis: 'المصالح المختارة',
+    autresServices: {
+      one: 'مصلحة إضافية واحدة: {liste}',
+      other: '{n} مصالح إضافية: {liste}',
+    },
+    filtrerService: 'تصفية حسب المصلحة',
     creerCompte: 'إنشاء الحساب',
     misAJour: 'تم تحديث المستخدم.',
     compteCree: 'أُنشئ الحساب. أُرسلت دعوة عبر البريد.',

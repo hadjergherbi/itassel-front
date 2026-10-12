@@ -601,6 +601,11 @@ export default {
     serviceMax: 'Ten services at most.',
     retirerService: 'Remove {nom}',
     servicesChoisis: 'Selected services',
+    autresServices: {
+      one: '{n} more service: {liste}',
+      other: '{n} more services: {liste}',
+    },
+    filtrerService: 'Filter by service',
     creerCompte: 'Create account',
     misAJour: 'User updated.',
     compteCree: 'Account created. An invitation was sent by email.',
