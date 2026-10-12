@@ -54,7 +54,7 @@ export const endpoints = {
 
   /** Types d'usage des messages prédéfinis : [{ code, libelle, statuts? }] */
   messagesPredefinisUsages: () => adminApi.get('/admin/messages-predefinis/usages'),
-  messagesPredefinis: (params) => adminApi.get('/admin/messages-predefinis', { params }),
+  messagesPredefinis: (params) => adminApi.get('/admin/modeles-message', { params }),
 
   annulerComplement: (id, body) => adminApi.post(`/admin/complements/${id}/annuler`, body),
 

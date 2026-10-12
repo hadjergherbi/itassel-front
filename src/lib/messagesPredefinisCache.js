@@ -1,4 +1,3 @@
-import adminApi from './adminApi'
 import { endpoints } from './endpoints'
 
 /** @type {null | Promise<ModeleNormalise[]>} */
@@ -35,39 +34,23 @@ export function filtrerModelesParUsages(modeles, usages) {
 
 /**
  * Charge la liste une seule fois (cache module). Relance avec { force: true }.
- * Essaie /admin/messages-predefinis puis /admin/parametres/modeles-message puis /admin/modeles-message.
+ * Route : GET /admin/modeles-message.
  */
 export async function chargerMessagesPredefinis({ force = false } = {}) {
   if (!force && cache) return cache
   if (!force && enCours) return enCours
 
-  enCours = (async () => {
-    const essais = [
-      () => endpoints.messagesPredefinis(),
-      () => endpoints.referentiel('modeles-message'),
-      () => adminApi.get('/admin/modeles-message'),
-    ]
-    let dernierErreur = null
-    for (const essai of essais) {
-      try {
-        const res = await essai()
-        const normalises = listeDepuis(res.data)
-          .map(normaliserModele)
-          .filter(Boolean)
-        cache = normalises
-        return cache
-      } catch (err) {
-        dernierErreur = err
-      }
-    }
-    throw dernierErreur ?? new Error('modeles_indisponibles')
-  })()
+  enCours = endpoints
+    .messagesPredefinis()
+    .then((res) => {
+      cache = listeDepuis(res.data).map(normaliserModele).filter(Boolean)
+      return cache
+    })
+    .finally(() => {
+      enCours = null
+    })
 
-  try {
-    return await enCours
-  } finally {
-    enCours = null
-  }
+  return enCours
 }
 
 export function invaliderCacheMessagesPredefinis() {
