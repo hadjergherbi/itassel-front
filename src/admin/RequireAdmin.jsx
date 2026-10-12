@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react'
 import { Navigate, useLocation } from 'react-router-dom'
 import { useAdminAuth } from './AdminAuthContext'
 import { takePendingLoginState } from '../lib/securite'
@@ -9,6 +10,15 @@ export default function RequireAdmin({ children }) {
   const { status, erreurChargement, reessayerSession } = useAdminAuth()
   const location = useLocation()
   const { tf } = useLanguage()
+  const sessionFermee = !erreurChargement && status !== 'checking' && status !== 'authenticated'
+  // Lu dans un effet, pas pendant le rendu : StrictMode rejoue le rendu
+  // et un second appel trouverait le message déjà consommé.
+  const [loginState, setLoginState] = useState(null)
+
+  useEffect(() => {
+    if (!sessionFermee) return undefined
+    setLoginState((actuel) => actuel ?? takePendingLoginState() ?? {})
+  }, [sessionFermee])
 
   if (erreurChargement) {
     return (
@@ -31,13 +41,19 @@ export default function RequireAdmin({ children }) {
     )
   }
 
-  if (status !== 'authenticated') {
-    const extra = takePendingLoginState() ?? {}
+  if (sessionFermee) {
+    if (!loginState) {
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-page text-sm text-gray-500">
+          {tf('admin.layout.chargement')}
+        </div>
+      )
+    }
     return (
       <Navigate
         to="/admin/connexion"
         replace
-        state={{ from: extra.from || location.pathname, flash: extra.flash }}
+        state={{ from: loginState.from || location.pathname, flash: loginState.flash }}
       />
     )
   }
