@@ -2,7 +2,7 @@
 
 Plateforme de gestion des doléances citoyennes du **Ministère des Sports** (Algérie). Interface web permettant aux citoyens de déposer et de suivre leurs doléances, et aux agents et administrateurs de les traiter.
 
-Ce dépôt contient uniquement le **front-end**. L’API est un projet séparé : [lien du repo backend].
+Ce dépôt contient uniquement le **front-end**. L’API Laravel est un dépôt séparé : récupérez son adresse auprès du responsable du projet, puis renseignez-la dans `VITE_API_URL`.
 
 ## Stack technique
 
@@ -40,7 +40,7 @@ Autres dépendances notables : Lucide React (icônes).
 - **Node.js** (aucune version n’est figée dans `package.json` ; une version LTS récente est recommandée)
 - **npm**
 
-Une API backend doit être disponible et renseignée via `VITE_API_URL`.
+Une API Laravel doit être disponible. Son URL de base se règle avec `VITE_API_URL` (elle se termine par `/api`). Vite lit cette variable **au build** : la valeur est figée dans les fichiers générés.
 
 ## Installation
 
@@ -50,13 +50,19 @@ cd ITASSEL
 npm install
 ```
 
-Le fichier `.env.example` n’est pas versionné. Créez un `.env` à la racine :
+Les modèles versionnés sont `.env.example` (développement) et `.env.production.example` (production). Les autres fichiers `.env` sont ignorés par Git.
+
+Pour le développement local, copiez l’exemple :
+
+```bash
+cp .env.example .env
+```
+
+Puis pointez vers l’API locale :
 
 ```
 VITE_API_URL=http://127.0.0.1:8000/api
 ```
-
-Adaptez l’URL à celle de l’API backend.
 
 ## Développement
 
@@ -72,7 +78,9 @@ L’application est servie par Vite (par défaut `http://localhost:5173`).
 npm run build
 ```
 
-Le résultat est généré dans `dist/`. Prévisualisation locale :
+Le résultat est généré dans `dist/`. Ce dossier est listé dans `.gitignore` : il n’est pas versionné, et ne doit pas l’être, parce qu’il embarque l’URL d’API du build (souvent `http://127.0.0.1:8000/api` en local).
+
+Prévisualisation locale :
 
 ```bash
 npm run preview
@@ -98,4 +106,4 @@ src/
 
 ## Backend
 
-API Laravel (ou équivalent) : [lien du repo backend].
+L’API est un projet Laravel distinct de ce dépôt. Il n’y a pas d’URL publique figée ici : clonez le dépôt indiqué par l’équipe, démarrez-le, puis réglez `VITE_API_URL` sur son préfixe `/api`.
