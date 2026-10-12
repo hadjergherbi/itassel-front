@@ -11,6 +11,8 @@ import api from '../../lib/api'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { estTousDomaines, estToutesNatures, formatDate, statutKey } from '../../lib/statuts'
+import { libelleService } from '../../lib/libelles'
+import { servicesDe } from '../../lib/services'
 import { BadgePortee } from '../../components/admin/doleance/shared'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
@@ -26,12 +28,8 @@ import { useLanguage } from '../../i18n/LanguageContext'
 
 const PERIODES = ['', '7j', '30j', '3m', 'annee']
 
-function nomServiceUtilisateur(utilisateur) {
-  return utilisateur?.service?.nom ?? utilisateur?.service?.nom_service ?? ''
-}
-
 export default function AdminDoleances() {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const { utilisateur, peut } = useAdminAuth()
   const vueGlobale = peut('tableau_de_bord.global')
   const peutExporter = peut('doleances.exporter')
@@ -149,11 +147,16 @@ export default function AdminDoleances() {
     setParams({})
   }
 
-  const serviceTitre = vueGlobale
-    ? service
-      ? services.find((s) => String(s.id_service) === service)?.nom_service || tf('admin.doleances.service')
-      : tf('admin.doleances.tousServices')
-    : nomServiceUtilisateur(utilisateur)
+  const mesServices = servicesDe(utilisateur).filter((s) => !estTousDomaines(s))
+  const optionsService = (vueGlobale ? services : mesServices).filter((s) => !estTousDomaines(s))
+  const serviceChoisi = optionsService.find((s) => String(s.id_service) === service)
+  const serviceTitre = service
+    ? libelleService(serviceChoisi ?? { nom_service: service }, lang) || tf('admin.doleances.service')
+    : vueGlobale
+      ? tf('admin.doleances.tousServices')
+      : mesServices.length > 1
+        ? tf('admin.doleances.tousMesServices')
+        : libelleService(mesServices[0], lang) || tf('admin.doleances.service')
 
   const chips = [
     { value: 'toutes', label: tf('admin.doleances.toutes'), count: totalCompteurs },
@@ -331,9 +334,11 @@ export default function AdminDoleances() {
       <PageHeader
         title={vueGlobale ? tf('admin.doleances.titreToutes') : tf('admin.doleances.titre')}
         subtitle={
-          vueGlobale
+          vueGlobale && !service
             ? tf('admin.doleances.vueGlobale', { n: totalAffiche })
-            : tf('admin.doleances.vueService', { n: totalAffiche, service: serviceTitre })
+            : !vueGlobale && !service && mesServices.length > 1
+              ? tf('admin.doleances.vueMesServices', { n: totalAffiche })
+              : tf('admin.doleances.vueService', { n: totalAffiche, service: serviceTitre })
         }
         actions={
           peutExporter ? (
@@ -386,18 +391,20 @@ export default function AdminDoleances() {
           onChange={(e) => setRecherche(e.target.value)}
           placeholder={tf('admin.doleances.placeholder')}
         />
-        {vueGlobale && (
+        {(vueGlobale || mesServices.length > 0) && (
           <div className="lg:w-52">
             <SelectInput
               id="admin-service"
               value={service}
               onChange={(e) => set('service', e.target.value)}
-              aria-label={tf('admin.doleances.tousServices')}
+              aria-label={tf('admin.doleances.service')}
             >
-              <option value="">{tf('admin.doleances.tousServices')}</option>
-              {services.map((s) => (
+              <option value="">
+                {vueGlobale ? tf('admin.doleances.tousServices') : tf('admin.doleances.tousMesServices')}
+              </option>
+              {optionsService.map((s) => (
                 <option key={s.id_service} value={String(s.id_service)}>
-                  {s.nom_service}
+                  {libelleService(s, lang)}
                 </option>
               ))}
             </SelectInput>

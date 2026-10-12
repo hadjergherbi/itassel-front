@@ -11,9 +11,9 @@ import { nomFichierReponse, telechargerBlob } from '../../lib/telechargement'
 import {
   datesPourPeriode,
   formatDateNumeric,
-  nomService,
   periodeTropLongue,
 } from '../../lib/statuts'
+import { libelleServices } from '../../lib/services'
 import { useLanguage } from '../../i18n/LanguageContext'
 import Toggle from './Toggle'
 
@@ -43,7 +43,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
   const { utilisateur, peut } = useAdminAuth()
   const vueGlobale = peut('tableau_de_bord.global')
   const toast = useToast()
-  const service = nomService(utilisateur)
+  const service = libelleServices(utilisateur, lang) || tf('admin.doleances.service')
 
   const [preset, setPreset] = useState('6m')
   const [dateDebut, setDateDebut] = useState(() => datesPourPeriode('6m').date_debut)

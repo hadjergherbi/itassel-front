@@ -9,9 +9,10 @@ import { nomFichierReponse, telechargerBlob } from '../../lib/telechargement'
 import {
   COULEURS_STATUT,
   nomComplet,
-  nomService,
   statutKey,
 } from '../../lib/statuts'
+import { libelleService } from '../../lib/libelles'
+import { libelleServices, servicesDe } from '../../lib/services'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import AlertBanner from '../../components/ui/AlertBanner'
@@ -22,6 +23,7 @@ import StackedBar from '../../components/ui/StackedBar'
 import StatusBadge from '../../components/StatusBadge'
 import HorizontalBarList from '../../components/ui/HorizontalBarList'
 import Tabs from '../../components/ui/Tabs'
+import { SelectInput } from '../../components/FormFields'
 import { useToast } from '../../components/ui/Toast'
 import { useFormat, useLanguage } from '../../i18n/LanguageContext'
 import { formatNombre } from '../../i18n/format'
@@ -222,7 +224,7 @@ export default function AdminDashboard() {
 }
 
 function DashboardSuperAdmin({ data, periode, onPeriode }) {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const { formatDate } = useFormat()
   const { peut } = useAdminAuth()
   const peutExporter = peut('tableau_de_bord.global')
@@ -335,7 +337,7 @@ function DashboardSuperAdmin({ data, periode, onPeriode }) {
             <tbody className="divide-y divide-gray-100">
               {parService.map((s) => (
                 <tr key={s.id_service ?? s.nom_service}>
-                  <td className="py-3 font-medium">{s.nom_service}</td>
+                  <td className="py-3 font-medium">{libelleService(s, lang) || s.nom_service}</td>
                   <td className="py-3 font-mono">{s.total}</td>
                   <td className="py-3">
                     <StackedBar
@@ -358,12 +360,46 @@ function DashboardSuperAdmin({ data, periode, onPeriode }) {
   )
 }
 
+function donneesDuService(data, id) {
+  if (!id) return data
+  const liste = Array.isArray(data?.par_service) ? data.par_service : []
+  const tranche = liste.find((s) => String(s.id_service) === String(id))
+  if (!tranche) return data
+  const indicateurs = tranche.indicateurs ?? {
+    ...(data?.indicateurs ?? {}),
+    total: tranche.total ?? data?.indicateurs?.total,
+    nouvelles: tranche.nouvelles ?? data?.indicateurs?.nouvelles,
+    en_cours: tranche.en_cours ?? data?.indicateurs?.en_cours,
+    resolues: tranche.resolues ?? data?.indicateurs?.resolues,
+    delai_moyen_jours: tranche.delai_moyen_jours ?? data?.indicateurs?.delai_moyen_jours,
+    delai_moyen_tendance_jours:
+      tranche.delai_moyen_tendance_jours ?? data?.indicateurs?.delai_moyen_tendance_jours,
+  }
+  return {
+    ...data,
+    indicateurs,
+    priorites: tranche.priorites ?? data?.priorites,
+    repartition: tranche.repartition ?? data?.repartition,
+    repartition_nature: tranche.repartition_nature ?? data?.repartition_nature,
+    dernieres: tranche.dernieres ?? data?.dernieres,
+    par_mois: tranche.par_mois ?? data?.par_mois,
+    mes_reaffectations: tranche.mes_reaffectations ?? data?.mes_reaffectations,
+    mes_reaffectations_en_attente:
+      tranche.mes_reaffectations_en_attente ?? data?.mes_reaffectations_en_attente,
+    periode: tranche.periode ?? data?.periode,
+  }
+}
+
 function DashboardService({ data, utilisateur, periode, onPeriode }) {
-  const { t, tf, locale } = useLanguage()
+  const { t, tf, locale, lang } = useLanguage()
   const { formatDate, formatRelatif } = useFormat()
   const navigate = useNavigate()
   const [idNouvelle, setIdNouvelle] = useState('')
   const [onglet, setOnglet] = useState('statut')
+  const [portee, setPortee] = useState('')
+  const mesServices = servicesDe(utilisateur)
+  const vue = donneesDuService(data, portee)
+  const plusieurs = mesServices.length > 1
 
   useEffect(() => {
     adminApi
@@ -375,9 +411,9 @@ function DashboardService({ data, utilisateur, periode, onPeriode }) {
       .catch(() => {})
   }, [])
 
-  const indicateurs = data?.indicateurs ?? {}
-  const periodeInfo = data?.periode ?? {}
-  const priorites = data?.priorites ?? {}
+  const indicateurs = vue?.indicateurs ?? {}
+  const periodeInfo = vue?.periode ?? {}
+  const priorites = vue?.priorites ?? {}
   const seuils = priorites.seuils ?? {}
   const nouvelleJours = Number(seuils.nouvelle_jours ?? 5)
   const informationJours = Number(seuils.information_jours ?? 15)
@@ -387,31 +423,34 @@ function DashboardService({ data, utilisateur, periode, onPeriode }) {
     {
       n: Number(priorites.complements_a_examiner ?? 0),
       label: tf('admin.dashboard.complementsExaminer'),
-      to: '/admin/doleances?a_examiner=1',
+      to: portee ? `/admin/doleances?a_examiner=1&service=${portee}` : '/admin/doleances?a_examiner=1',
     },
     {
       n: Number(priorites.nouvelles_en_retard ?? 0),
       label: tf('admin.dashboard.nouvellesRetard', { n: nouvelleJours }),
       to: `/admin/doleances?${new URLSearchParams({
         ...(idNouvelle ? { statut: idNouvelle } : {}),
+        ...(portee ? { service: portee } : {}),
         age_min: String(nouvelleJours),
       })}`,
     },
     {
       n: Number(priorites.informations_sans_reponse ?? 0),
       label: tf('admin.dashboard.infoSansReponse', { n: informationJours }),
-      to: `/admin/doleances?info_sans_reponse=1`,
+      to: portee
+        ? `/admin/doleances?info_sans_reponse=1&service=${portee}`
+        : '/admin/doleances?info_sans_reponse=1',
     },
   ]
   const rienUrgent = lignesPriorite.every((l) => l.n === 0)
 
   const tendance = indicateurs.delai_moyen_tendance_jours
   const tendanceN = tendance == null || tendance === '' ? null : Number(tendance)
-  const dernieres = data?.dernieres ?? []
-  const reaffectations = (data?.mes_reaffectations ?? []).slice(0, 3)
-  const attenteReaff = Number(data?.mes_reaffectations_en_attente ?? 0)
+  const dernieres = vue?.dernieres ?? []
+  const reaffectations = (vue?.mes_reaffectations ?? []).slice(0, 3)
+  const attenteReaff = Number(vue?.mes_reaffectations_en_attente ?? 0)
 
-  const itemsStatut = (data?.repartition ?? []).map((i) => {
+  const itemsStatut = (vue?.repartition ?? []).map((i) => {
     const key = statutKey(i.code ?? i)
     const couleurs = COULEURS_STATUT[key] ?? COULEURS_STATUT.default
     return {
@@ -422,7 +461,7 @@ function DashboardService({ data, utilisateur, periode, onPeriode }) {
     }
   })
 
-  const itemsNature = (data?.repartition_nature ?? []).map((i, index) => ({
+  const itemsNature = (vue?.repartition_nature ?? []).map((i, index) => ({
     code: i.id_nature,
     libelle: i.libelle,
     total: i.total,
@@ -436,11 +475,37 @@ function DashboardService({ data, utilisateur, periode, onPeriode }) {
         title={tf('admin.dashboard.bonjour', { prenom: utilisateur?.prenom ?? '' })}
         subtitle={
           <span className="whitespace-nowrap">
-            {tf('admin.dashboard.activiteService', { service: nomService(utilisateur) })}
+            {plusieurs && !portee
+              ? tf('admin.dashboard.activiteMesServices')
+              : tf('admin.dashboard.activiteService', {
+                  service: portee
+                    ? libelleService(
+                        mesServices.find((s) => String(s.id_service) === portee) ?? { nom_service: portee },
+                        lang,
+                      )
+                    : libelleServices(utilisateur, lang),
+                })}
           </span>
         }
         actions={
           <div className="flex flex-wrap items-center gap-3">
+            {plusieurs && (
+              <div className="min-w-48">
+                <SelectInput
+                  id="dashboard-portee"
+                  value={portee}
+                  onChange={(e) => setPortee(e.target.value)}
+                  aria-label={tf('admin.dashboard.choisirService')}
+                >
+                  <option value="">{tf('admin.dashboard.tousMesServices')}</option>
+                  {mesServices.map((s) => (
+                    <option key={s.id_service} value={String(s.id_service)}>
+                      {libelleService(s, lang)}
+                    </option>
+                  ))}
+                </SelectInput>
+              </div>
+            )}
             <SelecteurPeriode valeur={periode} onChange={onPeriode} />
             <Link
               to="/admin/doleances"
@@ -499,9 +564,25 @@ function DashboardService({ data, utilisateur, periode, onPeriode }) {
         </KpiCard>
       </div>
 
+      {plusieurs && !portee && Array.isArray(data?.par_service) && data.par_service.length > 0 && (
+        <Card title={tf('admin.dashboard.parService')}>
+          <HorizontalBarList
+            items={data.par_service.map((s) => ({
+              code: s.id_service,
+              libelle: libelleService(s, lang) || s.nom_service,
+              total: Number(s.total ?? s.indicateurs?.total ?? 0),
+            }))}
+            total={data.par_service.reduce(
+              (sum, s) => sum + Number(s.total ?? s.indicateurs?.total ?? 0),
+              0,
+            )}
+          />
+        </Card>
+      )}
+
       <div className="grid gap-6 lg:grid-cols-2">
         <Card title={tf('admin.dashboard.recuesParMois')}>
-          <BarChart items={data?.par_mois ?? []} legend />
+          <BarChart items={vue?.par_mois ?? []} legend />
         </Card>
         <Card>
           <Tabs

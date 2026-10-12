@@ -10,6 +10,7 @@ import { endpoints } from '../../lib/endpoints'
 import { formatDate, formatDateHeure, message409, nomComplet } from '../../lib/statuts'
 import { useAdminAuth } from '../../admin/AdminAuthContext'
 import { useLanguage } from '../../i18n/LanguageContext'
+import { libelleService } from '../../lib/libelles'
 
 const CODES_409 = [
   'demande_en_attente',
@@ -27,7 +28,10 @@ function messageReaffectation(err, tf, fallback, lang = 'fr') {
 }
 
 function ServiceRadios({ services, value, onChange, excludeId, allowInconnu, disabled, labelInconnu }) {
-  const options = services.filter((s) => s.id_service !== excludeId)
+  const { lang } = useLanguage()
+  const options = services.filter(
+    (s) => excludeId == null || String(s.id_service) !== String(excludeId),
+  )
 
   const carte = (selected, children, onPick) => (
     <label
@@ -54,7 +58,7 @@ function ServiceRadios({ services, value, onChange, excludeId, allowInconnu, dis
   return (
     <div className="grid gap-3 sm:grid-cols-2">
       {options.map((s) =>
-        carte(String(value) === String(s.id_service), s.nom_service, () => onChange(String(s.id_service))),
+        carte(String(value) === String(s.id_service), libelleService(s, lang), () => onChange(String(s.id_service))),
       )}
       {allowInconnu &&
         carte(value === '', <span className="font-medium">{labelInconnu}</span>, () => onChange(''))}
@@ -158,6 +162,11 @@ function DemanderModal({ open, onClose, dossier, services, onDone }) {
     >
       <form id="form-demander-reaffectation" onSubmit={submit} noValidate className="space-y-5">
         <div>
+          <p className="mb-3 text-sm text-gray-700">
+            {tf('admin.reaffectation.serviceOrigine', {
+              service: libelleService(dossier?.service, lang) || '—',
+            })}
+          </p>
           <p className="mb-3 text-sm font-medium text-gray-800">{tf('admin.reaffectation.serviceSuggere')}</p>
           <ServiceRadios
             services={services}
@@ -441,6 +450,7 @@ function AccepterModal({ open, onClose, demande, services, onDone }) {
               setService(v)
               setErrors({})
             }}
+            excludeId={demande?.service?.id_service ?? demande?.service_actuel?.id_service}
             disabled={busy}
           />
           <FieldError message={errors.id_service_destination} />
@@ -602,8 +612,9 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
           <div className="flex items-center gap-2 rounded-[8px] bg-gray-50 px-4 py-3 text-sm text-gray-800">
             <Building2 className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
             <p>
-              {tf('admin.reaffectation.affectationActuelle')}{' '}
-              <strong>{detail.service?.nom_service ?? '—'}</strong>
+              {tf('admin.reaffectation.serviceOrigine', {
+                service: libelleService(detail.service, lang) || '—',
+              })}
               {' · '}
               {detail.responsable
                 ? nomComplet(detail.responsable)
@@ -656,7 +667,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
                       }}
                     />
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-gray-900">{s.nom_service}</p>
+                      <p className="font-medium text-gray-900">{libelleService(s, lang)}</p>
                       <p className={s.responsable ? 'text-xs text-gray-500' : 'text-xs text-warning-text'}>
                         {s.responsable
                           ? tf('admin.reaffectation.responsableLabel', {
