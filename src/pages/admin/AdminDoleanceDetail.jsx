@@ -31,7 +31,7 @@ import useVisionneuse from '../../components/admin/doleance/useVisionneuse'
 export default function AdminDoleanceDetail() {
   const { reference } = useParams()
   const location = useLocation()
-  const { estSuperAdmin } = useAdminAuth()
+  const { peut } = useAdminAuth()
   const { tf } = useLanguage()
   const { formatDate } = useFormat()
 
@@ -225,7 +225,7 @@ export default function AdminDoleanceDetail() {
   const autres = complements.filter(
     (c) => c !== ouvert && !(d.complement_a_examiner && c === recu),
   )
-  const legacy = d.ancien_classement || statutKey(d.statut) === 'a_reclasser'
+  const aReclasser = Boolean(d.a_reclasser)
   const transitions = d.transitions_autorisees?.length
     ? d.transitions_autorisees
     : statuts.filter((s) => s.id_statut !== d.id_statut && s.id_statut !== d.statut?.id_statut)
@@ -251,7 +251,7 @@ export default function AdminDoleanceDetail() {
               {d.reference}
             </h1>
             <StatusBadge status={statutKey(d.statut)} label={d.statut?.libelle} showDot />
-            {legacy && <StatusBadge status="a_reclasser" label={tf('admin.detail.ancienClassement')} />}
+            {aReclasser && <StatusBadge status="a_reclasser" label={tf('admin.detail.ancienClassement')} />}
             {d.complement_a_examiner && (
               <StatusBadge status="en_cours" label={tf('admin.detail.complementRecu')} showDot />
             )}
@@ -259,7 +259,7 @@ export default function AdminDoleanceDetail() {
           <p className="mt-1 text-sm text-gray-500">{tf('admin.detail.recueLe', { date: formatDate(d.date_depot) })}</p>
         </div>
         <div className="flex flex-wrap gap-2">
-          {legacy && estSuperAdmin && (
+          {aReclasser && peut('doleances.reclasser') && (
             <Button variant="secondary" onClick={() => setModalReclasser(true)}>
               {tf('admin.detail.reclasser')}
             </Button>
@@ -446,7 +446,7 @@ export default function AdminDoleanceDetail() {
         open={modalReclasser}
         onClose={() => setModalReclasser(false)}
         dossier={d}
-        transitions={statuts}
+        transitions={d.reclassements_possibles ?? []}
         onDone={onDone}
       />
       {visionneuse}
