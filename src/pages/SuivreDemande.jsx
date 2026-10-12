@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate, useSearchParams } from 'react-router-dom'
 import { Lock, Mail } from 'lucide-react'
 import Header from '../components/Header'
@@ -11,6 +11,7 @@ const REF_RE = /^ITS-\d{4}-\d{6}$/i
 const MAX_REQUESTS = 3
 const MAX_ATTEMPTS = 5
 const OTP_LENGTH = 6
+const CODE_TTL_MS = 10 * 60 * 1000
 
 // Clé utilisée pour garder la session de suivi si l'utilisateur recharge
 // la page du dossier (le state de react-router est perdu au rechargement).
@@ -18,7 +19,7 @@ export const SUIVI_SESSION_KEY = 'itassel_suivi'
 
 const normalizeRef = (value) => value.trim().toUpperCase()
 
-function OtpInput({ value, onChange, disabled, error }) {
+function OtpInput({ value, onChange, disabled, error, chiffreLabel }) {
   const inputsRef = useRef([])
 
   const digits = Array.from({ length: OTP_LENGTH }, (_, i) => value[i] || '')
@@ -89,7 +90,7 @@ function OtpInput({ value, onChange, disabled, error }) {
             autoComplete={index === 0 ? 'one-time-code' : 'off'}
             maxLength={1}
             disabled={disabled}
-            aria-label={`Chiffre ${index + 1} sur ${OTP_LENGTH}`}
+            aria-label={chiffreLabel(index + 1)}
             placeholder="0"
             value={digit}
             onChange={(e) => handleChange(index, e.target.value)}
@@ -110,7 +111,7 @@ function OtpInput({ value, onChange, disabled, error }) {
 }
 
 export default function SuivreDemande() {
-  const { t, lang } = useLanguage()
+  const { t, tf } = useLanguage()
   const location = useLocation()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -136,12 +137,20 @@ export default function SuivreDemande() {
 
   const requestsExhausted = codeRequestCount >= MAX_REQUESTS
   const attemptsExhausted = verifyAttempts >= MAX_ATTEMPTS
+  const erreurCode = codeExpired ? t.track.codeExpired : codeError
 
-  const networkErrorText =
-    t.track.networkError ||
-    (lang === 'ar'
-      ? 'تعذّر الاتصال بالخادم. تحقّق من اتصالك وأعد المحاولة.'
-      : 'Connexion au serveur impossible. Vérifiez votre connexion et réessayez.')
+  // Le code reçu par email n'est valable que 10 minutes : passé ce délai,
+  // la saisie est bloquée et « Renvoyer un code » redevient l'action utile.
+  useEffect(() => {
+    if (step !== 'verification') return undefined
+    const id = window.setTimeout(() => setCodeExpired(true), CODE_TTL_MS)
+    return () => window.clearTimeout(id)
+  }, [step, codeRequestCount])
+
+  const messageEchec = (err) => {
+    if (err.response?.status === 429) return t.track.tropTentatives
+    return t.track.networkError
+  }
 
   const validateRef = (value) => {
     const trimmed = value.trim()
@@ -178,7 +187,7 @@ export default function SuivreDemande() {
       if (err.response?.status === 422) {
         setRefError(t.track.errors.invalid)
       } else {
-        setNetworkError(networkErrorText)
+        setNetworkError(messageEchec(err))
       }
     } finally {
       setIsRequesting(false)
@@ -260,7 +269,7 @@ export default function SuivreDemande() {
           nextAttempts >= MAX_ATTEMPTS ? t.track.maxAttempts : t.track.codeInvalid,
         )
       } else {
-        setNetworkError(networkErrorText)
+        setNetworkError(messageEchec(err))
       }
     } finally {
       setIsVerifying(false)
@@ -354,9 +363,10 @@ export default function SuivreDemande() {
                   if (codeError) setCodeError('')
                 }}
                 disabled={attemptsExhausted || codeExpired || isVerifying}
-                error={!!codeError}
+                error={!!erreurCode}
+                chiffreLabel={(n) => tf('track.chiffreOtp', { n, total: OTP_LENGTH })}
               />
-              <FieldError message={codeError} />
+              <FieldError message={erreurCode} />
             </div>
 
             <div className="mb-4 flex flex-col gap-3 sm:flex-row">

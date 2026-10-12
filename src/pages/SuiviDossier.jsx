@@ -9,13 +9,11 @@ import { FieldError, FieldHelp, FieldLabel, TextArea } from '../components/FormF
 import { useLanguage } from '../i18n/LanguageContext'
 import api from '../lib/api'
 import { statutKey } from '../lib/statuts'
+import { SUIVI_SESSION_KEY } from './SuivreDemande'
 
 const ACCEPT = ['application/pdf', 'image/jpeg', 'image/png']
 const MAX_BYTES = 5 * 1024 * 1024
 const MESSAGE_MAX = 2000
-
-// Même clé que dans SuivreDemande.jsx.
-const SUIVI_SESSION_KEY = 'itassel_suivi'
 
 /* ------------------------------------------------------------------ */
 /* Session de suivi (jeton reçu après vérification du code)            */
@@ -46,52 +44,33 @@ function clearStoredSession() {
 }
 
 /* ------------------------------------------------------------------ */
-/* Statuts et événements renvoyés par Laravel (libellés français)      */
+/* Statuts et événements : libellés i18n (fr / en / ar)                 */
 /* ------------------------------------------------------------------ */
 
-const STATUT_AR = {
-  nouvelle: 'شكوى جديدة',
-  en_cours: 'قيد المعالجة',
-  information_demandee: 'معلومات مطلوبة',
-  resolue: 'تم الحل',
-  cloturee: 'مغلقة',
-  non_retenue: 'غير مقبولة',
-  non_fondee: 'غير مؤسسة',
-  double: 'شكوى مكررة',
-}
-
-function statutLabel(statut, lang) {
-  const key = statutKey(statut)
-  if (lang === 'ar') return STATUT_AR[key] ?? statut?.libelle ?? ''
-  return statut?.libelle ?? ''
-}
-
-const EVENTS = {
-  depot: { fr: 'Doléance déposée', ar: 'تم إيداع الشكوى', dot: 'deposee' },
-  complement_demande: {
-    fr: 'Information demandée',
-    ar: 'معلومات مطلوبة',
-    dot: 'information_demandee',
-    showDetail: true,
-  },
-  complement_recu: { fr: 'Votre réponse a été reçue', ar: 'تم استلام ردّكم', dot: 'en_cours' },
-  complement_annule: {
-    fr: "Demande d'information annulée",
-    ar: 'تم إلغاء طلب المعلومات',
-    dot: 'en_cours',
-  },
+const POINT_EVENEMENT = {
+  depot: 'deposee',
+  complement_demande: 'information_demandee',
+  complement_recu: 'en_cours',
+  complement_annule: 'en_cours',
   // Ancien nom de l'événement, gardé pour les dossiers de test déjà créés.
-  complement: { fr: 'Votre réponse a été reçue', ar: 'تم استلام ردّكم', dot: 'en_cours' },
-  affectation: { fr: 'Dossier transmis au service', ar: 'تمت إحالة الملف إلى المصلحة', dot: 'en_cours' },
-  reaffectation: { fr: 'Dossier réorienté', ar: 'تمت إعادة توجيه الملف', dot: 'en_cours' },
-  changement_statut: { fr: 'Changement de statut', ar: 'تغيير الحالة', dot: 'default', showDetail: true },
+  complement: 'en_cours',
+  affectation: 'en_cours',
+  reaffectation: 'en_cours',
+  changement_statut: 'default',
 }
 
-function formatDate(iso, lang) {
+const DETAIL_EVENEMENT = new Set(['complement_demande', 'changement_statut'])
+
+function statutLabel(statut, t) {
+  const key = statutKey(statut)
+  return t.admin?.statuts?.[key] || statut?.libelle || ''
+}
+
+function formatDate(iso, locale) {
   if (!iso) return ''
   const date = new Date(iso)
   if (Number.isNaN(date.getTime())) return ''
-  return new Intl.DateTimeFormat(lang === 'ar' ? 'ar-DZ' : 'fr-FR', {
+  return new Intl.DateTimeFormat(locale, {
     day: '2-digit',
     month: 'short',
     year: 'numeric',
@@ -103,17 +82,18 @@ function formatDate(iso, lang) {
     .replace(/\u202f/g, ' ')
 }
 
-function buildHistory(dossier, lang) {
+function buildHistory(dossier, t, tf, locale) {
   if (!dossier) return []
-  const ar = lang === 'ar'
 
   const events = (dossier.historique ?? []).map((h) => {
-    const def = EVENTS[h.type_evenement]
-    let title = def ? (ar ? def.ar : def.fr) : h.type_evenement
-    let status = def?.dot ?? 'default'
+    const type = h.type_evenement
+    let title = t.dossier?.evenements?.[type] || type
+    let status = POINT_EVENEMENT[type] ?? 'default'
 
-    if (h.type_evenement === 'changement_statut' && h.statut_apres) {
-      title = `${ar ? 'الحالة' : 'Statut'} : ${statutLabel(h.statut_apres, lang)}`
+    if (type === 'changement_statut' && h.statut_apres) {
+      title = tf('dossier.evenements.statut', {
+        libelle: statutLabel(h.statut_apres, t),
+      })
       status = statutKey(h.statut_apres)
     }
 
@@ -121,17 +101,17 @@ function buildHistory(dossier, lang) {
       ts: Date.parse(h.date_evenement) || 0,
       status,
       title,
-      detail: def?.showDetail ? h.detail ?? '' : '',
-      date: formatDate(h.date_evenement, lang),
+      detail: DETAIL_EVENEMENT.has(type) ? (h.detail ?? '') : '',
+      date: formatDate(h.date_evenement, locale),
     }
   })
 
   const answers = (dossier.reponses ?? []).map((r) => ({
     ts: Date.parse(r.date_publication) || 0,
     status: 'resolue',
-    title: ar ? 'ردّ المصلحة' : 'Réponse du service',
+    title: t.dossier?.evenements?.reponseService || '',
     detail: r.contenu ?? '',
-    date: formatDate(r.date_publication, lang),
+    date: formatDate(r.date_publication, locale),
   }))
 
   return [...events, ...answers]
@@ -146,12 +126,11 @@ function buildHistory(dossier, lang) {
 /* ------------------------------------------------------------------ */
 
 export default function SuiviDossier() {
-  const { t, tf, lang } = useLanguage()
+  const { t, tf, locale } = useLanguage()
   const location = useLocation()
   const fileRef = useRef(null)
 
-  // Texte traduit, avec une version de secours si la clé n'existe pas.
-  const tx = (key, fr, ar) => t.dossier?.[key] || (lang === 'ar' ? ar : fr)
+  const tx = (key) => t.dossier?.[key] ?? ''
 
   // Jeton : d'abord celui transmis par SuivreDemande, sinon celui gardé
   // dans le navigateur (utile si la page est rechargée).
@@ -166,7 +145,7 @@ export default function SuiviDossier() {
   const jetonSession = session?.jetonSession ?? null
   const initialReference = session?.reference ?? ''
 
-  // loading | ready | missing | expired | network
+  // loading | ready | missing | expired | network | rate
   const [loadState, setLoadState] = useState(jetonSession ? 'loading' : 'missing')
   const [dossier, setDossier] = useState(null)
 
@@ -197,6 +176,11 @@ export default function SuiviDossier() {
           clearStoredSession()
           setDossier(null)
           setLoadState('expired')
+        } else if (status === 429) {
+          if (!silent) {
+            setDossier(null)
+            setLoadState('rate')
+          }
         } else if (!silent) {
           setDossier(null)
           setLoadState('network')
@@ -222,11 +206,14 @@ export default function SuiviDossier() {
   const showForm =
     Boolean(pendingComplement) && pendingComplement.id_complement !== answeredId
 
-  const historyItems = useMemo(() => buildHistory(dossier, lang), [dossier, lang])
+  const historyItems = useMemo(
+    () => buildHistory(dossier, t, tf, locale),
+    [dossier, t, tf, locale],
+  )
 
   const reference = dossier?.reference ?? initialReference
   const badgeKey = statutKey(dossier?.statut)
-  const badgeLabel = statutLabel(dossier?.statut, lang)
+  const badgeLabel = statutLabel(dossier?.statut, t)
 
   const validateFile = (next) => {
     if (!attachmentRequired) return ''
@@ -276,11 +263,7 @@ export default function SuiviDossier() {
       if (fileRef.current) fileRef.current.value = ''
       setNotice({
         type: 'success',
-        text: tx(
-          'sentOk',
-          'Votre réponse a bien été transmise au service concerné.',
-          'تم إرسال ردّكم إلى المصلحة المعنية.',
-        ),
+        text: tx('sentOk'),
       })
       // Recharge le dossier : nouveau statut et nouvel événement dans l'historique.
       loadDossier({ silent: true })
@@ -294,22 +277,16 @@ export default function SuiviDossier() {
         return
       }
 
+      if (status === 429) {
+        setNotice({ type: 'error', text: tx('tropTentatives') })
+        return
+      }
+
       if (status === 404 || status === 409) {
         setAnsweredId(pendingComplement?.id_complement ?? answeredId)
         setNotice({
           type: 'info',
-          text:
-            status === 409
-              ? tx(
-                  'plusEnAttente',
-                  "Ce dossier n'attend plus d'information. Le suivi a été actualisé.",
-                  'لم يعد هذا الملف في انتظار معلومات. تم تحديث المتابعة.',
-                )
-              : tx(
-                  'noPending',
-                  "Aucune information n'est plus demandée pour ce dossier.",
-                  'لم تعد هناك أي معلومات مطلوبة لهذا الملف.',
-                ),
+          text: status === 409 ? tx('plusEnAttente') : tx('noPending'),
         })
         loadDossier({ silent: true })
         return
@@ -332,11 +309,7 @@ export default function SuiviDossier() {
 
       setNotice({
         type: 'error',
-        text: tx(
-          'sendFailed',
-          "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
-          'تعذّر الإرسال. تحقّق من اتصالك وأعد المحاولة.',
-        ),
+        text: tx('sendFailed'),
       })
     } finally {
       setIsSubmitting(false)
@@ -349,7 +322,7 @@ export default function SuiviDossier() {
     error: 'border-red-200 bg-red-50 text-red-700',
   }
 
-  const blocked = ['missing', 'expired', 'network'].includes(loadState)
+  const blocked = ['missing', 'expired', 'network', 'rate'].includes(loadState)
 
   return (
     <div className="flex min-h-screen flex-col bg-page">
@@ -363,33 +336,19 @@ export default function SuiviDossier() {
         {blocked ? (
           <div className="mt-8 max-w-lg rounded-[8px] border border-red-200 bg-white p-6 shadow-sm">
             <p className="mb-4 text-sm leading-relaxed text-gray-700">
-              {loadState === 'missing' &&
-                tx(
-                  'missingToken',
-                  'Pour consulter un dossier, saisissez sa référence et le code reçu par email.',
-                  'للاطلاع على ملف، أدخلوا مرجعه والرمز الذي وصلكم عبر البريد الإلكتروني.',
-                )}
-              {loadState === 'expired' &&
-                tx(
-                  'sessionExpired',
-                  'Votre session a expiré. Demandez un nouveau code pour consulter votre dossier.',
-                  'انتهت صلاحية الجلسة. اطلبوا رمزًا جديدًا للاطلاع على ملفكم.',
-                )}
-              {loadState === 'network' &&
-                tx(
-                  'networkError',
-                  'Connexion au serveur impossible. Vérifiez votre connexion et réessayez.',
-                  'تعذّر الاتصال بالخادم. تحقّق من اتصالك وأعد المحاولة.',
-                )}
+              {loadState === 'missing' && tx('missingToken')}
+              {loadState === 'expired' && tx('sessionExpired')}
+              {loadState === 'network' && tx('networkError')}
+              {loadState === 'rate' && tx('tropTentatives')}
             </p>
 
-            {loadState === 'network' ? (
+            {loadState === 'network' || loadState === 'rate' ? (
               <button
                 type="button"
                 onClick={() => loadDossier()}
                 className="inline-flex rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040]"
               >
-                {tx('retry', 'Réessayer', 'إعادة المحاولة')}
+                {tx('retry')}
               </button>
             ) : (
               <Link
@@ -397,7 +356,7 @@ export default function SuiviDossier() {
                 state={reference ? { reference } : undefined}
                 className="inline-flex rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040]"
               >
-                {tx('restartTrack', 'Recommencer le suivi', 'إعادة المتابعة')}
+                {tx('restartTrack')}
               </Link>
             )}
           </div>
@@ -416,7 +375,7 @@ export default function SuiviDossier() {
 
             {loadState === 'loading' ? (
               <p className="text-sm text-gray-500">
-                {tx('loading', 'Chargement du dossier…', 'جارٍ تحميل الملف…')}
+                {tx('loading')}
               </p>
             ) : (
               <>
@@ -472,11 +431,7 @@ export default function SuiviDossier() {
                       </section>
                     ) : (
                       <section className="rounded-[8px] border border-gray-200 bg-white p-5 text-sm text-gray-700 shadow-sm">
-                        {tx(
-                          'noComplement',
-                          "Aucune action n'est requise de votre part pour le moment. Vous serez informé(e) par email de l'avancement de votre dossier.",
-                          'لا يُطلب منكم أي إجراء حاليًا. سيتم إعلامكم عبر البريد الإلكتروني بتقدّم ملفكم.',
-                        )}
+                        {tx('noComplement')}
                       </section>
                     )}
 

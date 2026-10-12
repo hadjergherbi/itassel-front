@@ -218,6 +218,9 @@ export default {
     "codeExpired": "Ce code a expiré. Demandez un nouveau code.",
     "codeInvalid": "Code incorrect. Vérifiez votre email et réessayez.",
     "codeRequired": "Saisissez les 6 chiffres du code.",
+    "tropTentatives": "Trop de tentatives, réessayez dans quelques minutes.",
+    "networkError": "Connexion au serveur impossible. Vérifiez votre connexion et réessayez.",
+    "chiffreOtp": "Chiffre {n} sur {total}",
     "errors": {
       "required": "Ce champ est obligatoire.",
       "invalid": "Référence invalide (ex. ITS-2026-004821)."
@@ -279,6 +282,21 @@ export default {
     "noPending": "Aucune information n'est plus demandée pour ce dossier.",
     "plusEnAttente": "Ce dossier n'attend plus d'information. Le suivi a été actualisé.",
     "sendFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
-    "missingToken": "Accès au dossier impossible : session manquante. Recommencez le suivi."
+    "missingToken": "Accès au dossier impossible : session manquante. Recommencez le suivi.",
+    "networkError": "Connexion au serveur impossible. Vérifiez votre connexion et réessayez.",
+    "retry": "Réessayer",
+    "tropTentatives": "Trop de tentatives, réessayez dans quelques minutes.",
+    "evenements": {
+      "depot": "Doléance déposée",
+      "complement_demande": "Information demandée",
+      "complement_recu": "Votre réponse a été reçue",
+      "complement_annule": "Demande d'information annulée",
+      "complement": "Votre réponse a été reçue",
+      "affectation": "Dossier transmis au service",
+      "reaffectation": "Dossier réorienté",
+      "changement_statut": "Changement de statut",
+      "reponseService": "Réponse du service",
+      "statut": "Statut : {libelle}"
+    }
   }
 }
