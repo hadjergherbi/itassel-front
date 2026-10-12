@@ -24,16 +24,13 @@ import RechercheRapide from '../components/admin/RechercheRapide'
 import NotificationsPanel from '../components/admin/NotificationsPanel'
 import LanguageSwitcher from '../components/LanguageSwitcher'
 import { useLanguage } from '../i18n/LanguageContext'
+import { libelleServices, nomsServices } from '../lib/services'
 
 const CLE_GROUPES = 'itassel.menu.groupes'
 const CLE_REDUIT = 'itassel.menu.reduit'
 
 const FOCUS =
   'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/60'
-
-function nomService(utilisateur) {
-  return utilisateur?.service?.nom ?? utilisateur?.service?.nom_service ?? ''
-}
 
 function lireGroupes() {
   try {
@@ -341,6 +338,7 @@ function NavAdmin({ peut, nouvelles, onNavigate, reduit = false, afficherReduire
 function ColonneMenu({
   utilisateur,
   espace,
+  espaceDetail,
   roleBas,
   peut,
   nouvelles,
@@ -381,7 +379,7 @@ function ColonneMenu({
                 </span>
                 <span
                   className="mt-1.5 inline-flex max-w-[150px] items-center gap-1.5 truncate rounded-full bg-white/10 px-2 py-0.5 text-[11px] font-medium text-white/80"
-                  title={espace}
+                  title={espaceDetail || espace}
                 >
                   <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-action" aria-hidden />
                   <span className="truncate">{espace}</span>
@@ -462,7 +460,7 @@ function Deconnexion({ reduit }) {
 
 export default function AdminLayout() {
   const { utilisateur, rafraichirProfil, estSuperAdmin, peut } = useAdminAuth()
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const location = useLocation()
   const [drawer, setDrawer] = useState(false)
   const [reduit, setReduit] = useState(lireReduit)
@@ -502,17 +500,23 @@ export default function AdminLayout() {
     return undefined
   }, [drawer])
 
-  const service = nomService(utilisateur)
+  const noms = estSuperAdmin ? [] : nomsServices(utilisateur, lang)
+  const resume = noms.length > 1 ? libelleServices(utilisateur, lang, 1) : noms[0] ?? ''
   const espace = estSuperAdmin
     ? tf('admin.layout.administration')
-    : service
-      ? tf('admin.layout.espaceService', { service })
-      : tf('admin.layout.administration')
+    : noms.length > 1
+      ? tf('admin.layout.espacePlusieurs', { resume })
+      : noms.length === 1
+        ? tf('admin.layout.espaceService', { service: noms[0] })
+        : tf('admin.layout.administration')
+  const espaceDetail = noms.length > 1 ? noms.join(', ') : espace
   const roleBas = estSuperAdmin
     ? tf('admin.layout.superAdmin')
-    : service
-      ? tf('admin.layout.administrateurService', { service })
-      : tf('admin.layout.administrateur')
+    : noms.length > 1
+      ? tf('admin.layout.administrateurPlusieurs', { resume })
+      : noms.length === 1
+        ? tf('admin.layout.administrateurService', { service: noms[0] })
+        : tf('admin.layout.administrateur')
   const nouvelles = Number(utilisateur?.compteur_nouvelles) || 0
 
   const basculerReduit = () => {
@@ -526,6 +530,7 @@ export default function AdminLayout() {
   const propsMenu = {
     utilisateur,
     espace,
+    espaceDetail,
     roleBas,
     peut,
     nouvelles,

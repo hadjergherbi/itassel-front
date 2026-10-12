@@ -12,7 +12,8 @@ import ListeReglesMotDePasse, {
 import { FieldLabel } from '../../components/FormFields'
 import { endpoints } from '../../lib/endpoints'
 import { extractErrors } from '../../lib/adminApi'
-import { nomService } from '../../lib/statuts'
+import { libelleService } from '../../lib/libelles'
+import { servicesOrdonnes } from '../../lib/services'
 import { useFormat, useLanguage } from '../../i18n/LanguageContext'
 
 function ChampVerrouille({ id, label, value }) {
@@ -36,7 +37,7 @@ export default function AdminMonCompte() {
   const { utilisateur, rafraichirProfil, estSuperAdmin } = useAdminAuth()
   const { tf, lang } = useLanguage()
   const { formatDateHeure } = useFormat()
-  const service = nomService(utilisateur)
+  const services = estSuperAdmin ? [] : servicesOrdonnes(utilisateur)
   const role = utilisateur?.libelle_role || (estSuperAdmin ? tf('admin.layout.superAdmin') : tf('admin.layout.administrateur'))
 
   const [actuel, setActuel] = useState('')
@@ -110,7 +111,30 @@ export default function AdminMonCompte() {
           <ChampVerrouille id="compte-nom" label={tf('admin.monCompte.nom')} value={utilisateur?.nom} />
           <ChampVerrouille id="compte-prenom" label={tf('admin.monCompte.prenom')} value={utilisateur?.prenom} />
           <ChampVerrouille id="compte-email" label={tf('admin.monCompte.email')} value={utilisateur?.email} />
-          {service ? <ChampVerrouille id="compte-service" label={tf('admin.monCompte.service')} value={service} /> : null}
+          {services.length > 0 && (
+            <div className="sm:col-span-2">
+              <FieldLabel htmlFor="compte-services">{tf('admin.monCompte.services')}</FieldLabel>
+              <div
+                id="compte-services"
+                className="flex min-h-[42px] flex-wrap items-center gap-1.5 rounded-[8px] border border-gray-200 bg-gray-100 px-3 py-2"
+              >
+                {services.map((s, index) => (
+                  <span
+                    key={s.id_service}
+                    title={index === 0 ? tf('admin.utilisateurs.servicePrincipal') : undefined}
+                    className={
+                      index === 0
+                        ? 'rounded-full bg-[#e6f6ed] px-2 py-0.5 text-xs font-medium text-institutional'
+                        : 'rounded-full bg-white px-2 py-0.5 text-xs text-gray-700'
+                    }
+                  >
+                    {libelleService(s, lang)}
+                  </span>
+                ))}
+                <Lock className="ms-auto h-4 w-4 shrink-0 text-gray-400" aria-hidden />
+              </div>
+            </div>
+          )}
           <ChampVerrouille id="compte-role" label={tf('admin.monCompte.role')} value={role} />
         </div>
         <p className="mt-4 text-xs text-gray-500">{tf('admin.monCompte.modifierContact')}</p>
