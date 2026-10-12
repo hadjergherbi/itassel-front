@@ -59,13 +59,15 @@ export default function ComplementOuvertCard({ complement, onAnnuler }) {
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-gray-600">{tf('admin.complementOuvert.enAttente')}</p>
-        <button
-          type="button"
-          onClick={onAnnuler}
-          className="inline-flex items-center justify-center rounded-[8px] border border-institutional bg-white px-4 py-2 text-sm font-medium text-institutional transition hover:bg-[#e6f6ed]"
-        >
-          {tf('admin.complementOuvert.annulerDemande')}
-        </button>
+        {onAnnuler && (
+          <button
+            type="button"
+            onClick={onAnnuler}
+            className="inline-flex items-center justify-center rounded-[8px] border border-institutional bg-white px-4 py-2 text-sm font-medium text-institutional transition hover:bg-[#e6f6ed]"
+          >
+            {tf('admin.complementOuvert.annulerDemande')}
+          </button>
+        )}
       </div>
     </section>
   )

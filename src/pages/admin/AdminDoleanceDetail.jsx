@@ -32,6 +32,12 @@ export default function AdminDoleanceDetail() {
   const { reference } = useParams()
   const location = useLocation()
   const { peut } = useAdminAuth()
+  const peutChangerStatut = peut('doleances.changer_statut')
+  const peutExaminer = peut('complements.examiner')
+  const peutAnnulerComplement = peut('complements.annuler')
+  const peutDemanderComplementPerm = peut('complements.demander')
+  const peutRepondre = peut('doleances.repondre')
+  const peutNotes = peut('doleances.notes')
   const { tf } = useLanguage()
   const { formatDate } = useFormat()
 
@@ -231,7 +237,9 @@ export default function AdminDoleanceDetail() {
     : statuts.filter((s) => s.id_statut !== d.id_statut && s.id_statut !== d.statut?.id_statut)
   const statutActuel = statutKey(d.statut)
   const peutDemanderComplement =
-    !ouvert && (statutActuel === 'nouvelle' || statutActuel === 'en_cours')
+    peutDemanderComplementPerm &&
+    !ouvert &&
+    (statutActuel === 'nouvelle' || statutActuel === 'en_cours')
   const aInformationDemandee = transitions.some((s) => statutKey(s) === 'information_demandee')
 
   const noticeClass = {
@@ -264,10 +272,12 @@ export default function AdminDoleanceDetail() {
               {tf('admin.detail.reclasser')}
             </Button>
           )}
-          <Button onClick={() => ouvrirStatut(null)}>
-            <Pencil className="h-4 w-4" aria-hidden />
-            {tf('admin.detail.changerStatut')}
-          </Button>
+          {peutChangerStatut && (
+            <Button onClick={() => ouvrirStatut(null)}>
+              <Pencil className="h-4 w-4" aria-hidden />
+              {tf('admin.detail.changerStatut')}
+            </Button>
+          )}
         </div>
       </div>
 
@@ -290,16 +300,18 @@ export default function AdminDoleanceDetail() {
               {tf('admin.detail.allerComplement')}
             </a>
           </p>
-          <Button
-            disabled={!complementConsulte || busyExamen}
-            title={
-              complementConsulte ? undefined : tf('admin.detail.consulterDabord')
-            }
-            onClick={() => marquerExamine(idComplementRecu)}
-          >
-            <Check className="h-4 w-4" aria-hidden />
-            {busyExamen ? tf('admin.detail.enregistrement') : tf('admin.detail.marquerExamine')}
-          </Button>
+          {peutExaminer && (
+            <Button
+              disabled={!complementConsulte || busyExamen}
+              title={
+                complementConsulte ? undefined : tf('admin.detail.consulterDabord')
+              }
+              onClick={() => marquerExamine(idComplementRecu)}
+            >
+              <Check className="h-4 w-4" aria-hidden />
+              {busyExamen ? tf('admin.detail.enregistrement') : tf('admin.detail.marquerExamine')}
+            </Button>
+          )}
         </div>
       )}
 
@@ -360,7 +372,7 @@ export default function AdminDoleanceDetail() {
           {ouvert && (
             <ComplementOuvertCard
               complement={ouvert}
-              onAnnuler={() => setModalAnnuler(true)}
+              onAnnuler={peutAnnulerComplement ? () => setModalAnnuler(true) : undefined}
             />
           )}
 
@@ -388,14 +400,20 @@ export default function AdminDoleanceDetail() {
             onDemanderComplement={() => ouvrirStatut('information_demandee')}
           />
           <Reponses reponses={d.reponses} />
-          <RepondreDemandeur
+          {peutRepondre && (
+            <RepondreDemandeur
+              dossier={d}
+              modeles={modelesReponse}
+              modelesState={modelesState}
+              onRetryModeles={() => chargerModeles({ force: true })}
+              onDone={onDone}
+            />
+          )}
+          <NotesInternes
             dossier={d}
-            modeles={modelesReponse}
-            modelesState={modelesState}
-            onRetryModeles={() => chargerModeles({ force: true })}
-            onDone={onDone}
+            peutRediger={peutNotes}
+            onRefresh={() => charger({ silent: true })}
           />
-          <NotesInternes dossier={d} onRefresh={() => charger({ silent: true })} />
         </div>
 
         <div className="space-y-6">
@@ -406,6 +424,7 @@ export default function AdminDoleanceDetail() {
             notesInternes={d.notes_internes}
             demandeur={d}
             onDone={onDone}
+            peutRenvoyer={peut('notifications.renvoyer')}
           />
         </div>
       </div>

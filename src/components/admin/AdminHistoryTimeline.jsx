@@ -99,7 +99,7 @@ function auteurEvenement(h, demandeur, tf) {
   return tf('admin.historique.systeme')
 }
 
-function LigneNotification({ notification, typeEvenement, serviceResponsable, onRenvoi }) {
+function LigneNotification({ notification, typeEvenement, serviceResponsable, onRenvoi, peutRenvoyer }) {
   const { tf } = useLanguage()
   const [busy, setBusy] = useState(false)
   const cible =
@@ -139,20 +139,30 @@ function LigneNotification({ notification, typeEvenement, serviceResponsable, on
   return (
     <p className="text-xs font-medium text-[#b42318]">
       {prefixe}
-      {' · '}
-      <button
-        type="button"
-        onClick={renvoyer}
-        disabled={busy}
-        className="underline underline-offset-2 disabled:opacity-60"
-      >
-        {busy ? tf('admin.ui.envoi') : tf('admin.historique.renvoyer')}
-      </button>
+      {peutRenvoyer && (
+        <>
+          {' · '}
+          <button
+            type="button"
+            onClick={renvoyer}
+            disabled={busy}
+            className="underline underline-offset-2 disabled:opacity-60"
+          >
+            {busy ? tf('admin.ui.envoi') : tf('admin.historique.renvoyer')}
+          </button>
+        </>
+      )}
     </p>
   )
 }
 
-export default function AdminHistoryTimeline({ historique = [], notesInternes = [], demandeur, onDone }) {
+export default function AdminHistoryTimeline({
+  historique = [],
+  notesInternes = [],
+  demandeur,
+  onDone,
+  peutRenvoyer = false,
+}) {
   const { tf, lang } = useLanguage()
   const [afficherNotes, setAfficherNotes] = useState(false)
 
@@ -292,6 +302,7 @@ export default function AdminHistoryTimeline({ historique = [], notesInternes = 
                         typeEvenement={h.type_evenement}
                         serviceResponsable={nomServiceNotif(n, h)}
                         onRenvoi={renvoyer}
+                        peutRenvoyer={peutRenvoyer}
                       />
                     ))
                   )}

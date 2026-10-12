@@ -9,7 +9,7 @@ import SuiviDossier from './pages/SuiviDossier'
 import DefinirMotDePasse from './pages/DefinirMotDePasse'
 import { AdminAuthProvider } from './admin/AdminAuthContext'
 import RequireAdmin from './admin/RequireAdmin'
-import RequireSuperAdmin from './admin/RequireSuperAdmin'
+import RequirePermission from './admin/RequirePermission'
 import AdminLayout from './admin/AdminLayout'
 
 const AdminConnexion = lazy(() => import('./pages/admin/AdminConnexion'))
@@ -65,57 +65,57 @@ function RoutesApp() {
           <Route
             path="services"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="services.gerer">
                 <AdminServices />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="utilisateurs"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="utilisateurs.gerer">
                 <AdminUtilisateurs />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="roles"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="roles.gerer">
                 <AdminRoles />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="parametres"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="parametres.gerer">
                 <AdminParametres />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="parametres/issues"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="parametres.gerer">
                 <AdminIssues />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="logs"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="journal.voir">
                 <AdminLogsDashboard />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
           <Route
             path="logs/journal"
             element={
-              <RequireSuperAdmin>
+              <RequirePermission code="journal.voir">
                 <AdminJournal />
-              </RequireSuperAdmin>
+              </RequirePermission>
             }
           />
         </Route>

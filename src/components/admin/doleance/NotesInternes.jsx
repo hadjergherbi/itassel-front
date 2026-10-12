@@ -134,6 +134,7 @@ function NoteItem({
   busy,
   errors,
   reference,
+  peutRediger,
   onEpingler,
   onModifier,
   onAnnulerEdition,
@@ -200,7 +201,7 @@ function NoteItem({
                 <p className="mt-0.5 text-xs text-gray-400">{tf('admin.notes.modifiableEncore', { n: restant })}</p>
               )}
             </div>
-            {!enEdition && (
+            {peutRediger && !enEdition && (
               <MenuNote
                 note={note}
                 maintenant={maintenant}
@@ -234,7 +235,7 @@ function NoteItem({
   )
 }
 
-export default function NotesInternes({ dossier, onRefresh }) {
+export default function NotesInternes({ dossier, onRefresh, peutRediger = false }) {
   const { tf } = useLanguage()
   const toast = useToast()
   const maintenant = useHorloge()
@@ -402,6 +403,7 @@ export default function NotesInternes({ dossier, onRefresh }) {
       busy={busyId === n.id_note}
       errors={edition === n.id_note ? errors : {}}
       reference={dossier.reference}
+      peutRediger={peutRediger}
       onEpingler={() => epingler(n)}
       onModifier={() => {
         setBanniere('')
@@ -457,16 +459,18 @@ export default function NotesInternes({ dossier, onRefresh }) {
 
         {autres.length > 0 && <ul className="space-y-3">{autres.map(renderNote)}</ul>}
 
-        <div className="border-t border-gray-100 pt-4">
-          <EditeurNote
-            key={cleForm}
-            mode="create"
-            reference={dossier.reference}
-            onSubmit={ajouter}
-            busy={creationBusy}
-            errors={edition ? {} : errors}
-          />
-        </div>
+        {peutRediger && (
+          <div className="border-t border-gray-100 pt-4">
+            <EditeurNote
+              key={cleForm}
+              mode="create"
+              reference={dossier.reference}
+              onSubmit={ajouter}
+              busy={creationBusy}
+              errors={edition ? {} : errors}
+            />
+          </div>
+        )}
         <p className="sr-only" aria-live="polite">
           {annonce}
         </p>

@@ -209,7 +209,7 @@ function Groupe({ label, icon: Icon, open, onToggle, active, children, reduit, p
   )
 }
 
-function NavAdmin({ estSuperAdmin, nouvelles, onNavigate, reduit = false, afficherReduire = false, onToggleReduit }) {
+function NavAdmin({ peut, nouvelles, onNavigate, reduit = false, afficherReduire = false, onToggleReduit }) {
   const location = useLocation()
   const { tf } = useLanguage()
   const accesActif = location.pathname.startsWith('/admin/utilisateurs') || location.pathname.startsWith('/admin/roles')
@@ -247,49 +247,65 @@ function NavAdmin({ estSuperAdmin, nouvelles, onNavigate, reduit = false, affich
         <Lien to="/admin/doleances" icon={Inbox} badge={badge} onClick={onNavigate} reduit={reduit}>
           {tf('admin.layout.doleances')}
         </Lien>
-        {estSuperAdmin && (
+        {(peut('services.gerer') ||
+          peut('parametres.gerer') ||
+          peut('utilisateurs.gerer') ||
+          peut('roles.gerer') ||
+          peut('journal.voir')) && (
           <>
             <Intitule reduit={reduit}>{tf('admin.layout.sectionAdministration')}</Intitule>
-            <Lien to="/admin/services" icon={Building2} onClick={onNavigate} reduit={reduit}>
-              {tf('admin.layout.services')}
-            </Lien>
-            <Lien to="/admin/parametres" icon={Settings} onClick={onNavigate} reduit={reduit}>
-              {tf('admin.layout.parametres')}
-            </Lien>
-            <Groupe
-              label={tf('admin.layout.acces')}
-              icon={Users}
-              open={accesOpen}
-              onToggle={() => basculer('acces')}
-              active={accesActif}
-              reduit={reduit}
-              premier="/admin/utilisateurs"
-              onNavigate={onNavigate}
-            >
-              <Lien to="/admin/utilisateurs" sousLien onClick={onNavigate}>
-                {tf('admin.layout.utilisateurs')}
+            {peut('services.gerer') && (
+              <Lien to="/admin/services" icon={Building2} onClick={onNavigate} reduit={reduit}>
+                {tf('admin.layout.services')}
               </Lien>
-              <Lien to="/admin/roles" sousLien onClick={onNavigate}>
-                {tf('admin.layout.roles')}
+            )}
+            {peut('parametres.gerer') && (
+              <Lien to="/admin/parametres" icon={Settings} onClick={onNavigate} reduit={reduit}>
+                {tf('admin.layout.parametres')}
               </Lien>
-            </Groupe>
-            <Groupe
-              label={tf('admin.layout.logs')}
-              icon={ScrollText}
-              open={logsOpen}
-              onToggle={() => basculer('logs')}
-              active={logsActif}
-              reduit={reduit}
-              premier="/admin/logs"
-              onNavigate={onNavigate}
-            >
-              <Lien to="/admin/logs" end sousLien onClick={onNavigate}>
-                {tf('admin.layout.tableauDeBord')}
-              </Lien>
-              <Lien to="/admin/logs/journal" sousLien onClick={onNavigate}>
-                {tf('admin.layout.journal')}
-              </Lien>
-            </Groupe>
+            )}
+            {(peut('utilisateurs.gerer') || peut('roles.gerer')) && (
+              <Groupe
+                label={tf('admin.layout.acces')}
+                icon={Users}
+                open={accesOpen}
+                onToggle={() => basculer('acces')}
+                active={accesActif}
+                reduit={reduit}
+                premier={peut('utilisateurs.gerer') ? '/admin/utilisateurs' : '/admin/roles'}
+                onNavigate={onNavigate}
+              >
+                {peut('utilisateurs.gerer') && (
+                  <Lien to="/admin/utilisateurs" sousLien onClick={onNavigate}>
+                    {tf('admin.layout.utilisateurs')}
+                  </Lien>
+                )}
+                {peut('roles.gerer') && (
+                  <Lien to="/admin/roles" sousLien onClick={onNavigate}>
+                    {tf('admin.layout.roles')}
+                  </Lien>
+                )}
+              </Groupe>
+            )}
+            {peut('journal.voir') && (
+              <Groupe
+                label={tf('admin.layout.logs')}
+                icon={ScrollText}
+                open={logsOpen}
+                onToggle={() => basculer('logs')}
+                active={logsActif}
+                reduit={reduit}
+                premier="/admin/logs"
+                onNavigate={onNavigate}
+              >
+                <Lien to="/admin/logs" end sousLien onClick={onNavigate}>
+                  {tf('admin.layout.tableauDeBord')}
+                </Lien>
+                <Lien to="/admin/logs/journal" sousLien onClick={onNavigate}>
+                  {tf('admin.layout.journal')}
+                </Lien>
+              </Groupe>
+            )}
           </>
         )}
       </nav>
@@ -326,7 +342,7 @@ function ColonneMenu({
   utilisateur,
   espace,
   roleBas,
-  estSuperAdmin,
+  peut,
   nouvelles,
   reduit = false,
   afficherReduire = false,
@@ -388,7 +404,7 @@ function ColonneMenu({
         <div className="absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" aria-hidden />
       </div>
       <NavAdmin
-        estSuperAdmin={estSuperAdmin}
+        peut={peut}
         nouvelles={nouvelles}
         onNavigate={onNavigate}
         reduit={reduit}
@@ -445,7 +461,7 @@ function Deconnexion({ reduit }) {
 }
 
 export default function AdminLayout() {
-  const { utilisateur, rafraichirProfil, estSuperAdmin } = useAdminAuth()
+  const { utilisateur, rafraichirProfil, estSuperAdmin, peut } = useAdminAuth()
   const { tf } = useLanguage()
   const location = useLocation()
   const [drawer, setDrawer] = useState(false)
@@ -511,7 +527,7 @@ export default function AdminLayout() {
     utilisateur,
     espace,
     roleBas,
-    estSuperAdmin,
+    peut,
     nouvelles,
   }
 

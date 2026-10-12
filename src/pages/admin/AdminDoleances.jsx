@@ -32,7 +32,10 @@ function nomServiceUtilisateur(utilisateur) {
 
 export default function AdminDoleances() {
   const { tf } = useLanguage()
-  const { utilisateur, estSuperAdmin } = useAdminAuth()
+  const { utilisateur, peut } = useAdminAuth()
+  const vueGlobale = peut('tableau_de_bord.global')
+  const peutExporter = peut('doleances.exporter')
+  const peutReaffecter = peut('reaffectations.directe')
   const toast = useToast()
   const navigate = useNavigate()
   const [params, setParams] = useSearchParams()
@@ -96,13 +99,13 @@ export default function AdminDoleances() {
       .get('/referentiels')
       .then((res) => {
         setNatures(res.data?.natures ?? [])
-        if (estSuperAdmin) setServices(res.data?.services ?? [])
+        if (vueGlobale) setServices(res.data?.services ?? [])
       })
       .catch(() => {
         setNatures([])
         setServices([])
       })
-  }, [estSuperAdmin])
+  }, [vueGlobale])
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -146,7 +149,7 @@ export default function AdminDoleances() {
     setParams({})
   }
 
-  const serviceTitre = estSuperAdmin
+  const serviceTitre = vueGlobale
     ? service
       ? services.find((s) => String(s.id_service) === service)?.nom_service || tf('admin.doleances.service')
       : tf('admin.doleances.tousServices')
@@ -154,10 +157,10 @@ export default function AdminDoleances() {
 
   const chips = [
     { value: 'toutes', label: tf('admin.doleances.toutes'), count: totalCompteurs },
-    ...(estSuperAdmin
+    ...(vueGlobale
       ? [{ value: 'sans_responsable', label: tf('admin.doleances.sansResponsable'), count: sansResponsableTotal, tone: 'warning' }]
       : []),
-    ...(estSuperAdmin
+    ...(vueGlobale
       ? [{ value: 'reaffectation', label: tf('admin.doleances.demandesReaff'), count: reaffectationsAttenteTotal, tone: 'warning' }]
       : []),
     { value: 'a_examiner', label: tf('admin.doleances.complementsExaminer'), count: aExaminerTotal, tone: 'warning' },
@@ -248,7 +251,7 @@ export default function AdminDoleances() {
         </span>
       ),
     },
-    ...(estSuperAdmin
+    ...(vueGlobale
       ? [
           {
             id: 'service',
@@ -309,7 +312,7 @@ export default function AdminDoleances() {
               <Eye className="h-4 w-4" />
             </IconButton>
           </Link>
-          {estSuperAdmin && (
+          {peutReaffecter && (
             <Button
               variant="secondary"
               size="sm"
@@ -326,16 +329,18 @@ export default function AdminDoleances() {
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
-        title={estSuperAdmin ? tf('admin.doleances.titreToutes') : tf('admin.doleances.titre')}
+        title={vueGlobale ? tf('admin.doleances.titreToutes') : tf('admin.doleances.titre')}
         subtitle={
-          estSuperAdmin
+          vueGlobale
             ? tf('admin.doleances.vueGlobale', { n: totalAffiche })
             : tf('admin.doleances.vueService', { n: totalAffiche, service: serviceTitre })
         }
         actions={
-          <Button variant="secondary" onClick={() => setExportOpen(true)}>
-            <Download className="h-4 w-4" /> {tf('admin.doleances.exporter')}
-          </Button>
+          peutExporter ? (
+            <Button variant="secondary" onClick={() => setExportOpen(true)}>
+              <Download className="h-4 w-4" /> {tf('admin.doleances.exporter')}
+            </Button>
+          ) : null
         }
       />
 
@@ -381,7 +386,7 @@ export default function AdminDoleances() {
           onChange={(e) => setRecherche(e.target.value)}
           placeholder={tf('admin.doleances.placeholder')}
         />
-        {estSuperAdmin && (
+        {vueGlobale && (
           <div className="lg:w-52">
             <SelectInput
               id="admin-service"

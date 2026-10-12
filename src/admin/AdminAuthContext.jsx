@@ -17,6 +17,15 @@ import {
 
 const AdminAuthContext = createContext(null)
 
+/** Codes que la matrice verrouille pour le super administrateur. */
+const PERMISSIONS_VERROUILLEES = ['roles.gerer', 'utilisateurs.gerer']
+
+function codesPermissions(utilisateur) {
+  const brut = utilisateur?.permissions ?? utilisateur?.codes_permissions ?? []
+  if (!Array.isArray(brut)) return []
+  return brut.map((item) => (typeof item === 'string' ? item : item?.code)).filter(Boolean)
+}
+
 export function AdminAuthProvider({ children }) {
   const [utilisateur, setUtilisateur] = useState(null)
   const [expireLe, setExpireLe] = useState(() => (sessionEncoreValide() ? readExpireLe() : null))
@@ -82,10 +91,17 @@ export function AdminAuthProvider({ children }) {
     })
     writeSession(res.data.token, res.data.expire_le)
     setExpireLe(res.data.expire_le ?? null)
-    setUtilisateur(res.data.utilisateur)
     setStatus('authenticated')
     resetDeconnexionEnCours()
-    return res.data.utilisateur
+    try {
+      const me = await adminApi.get('/admin/me')
+      setUtilisateur(me.data)
+      return me.data
+    } catch (err) {
+      if (err.response?.status === 401) throw err
+      setUtilisateur(res.data.utilisateur)
+      return res.data.utilisateur
+    }
   }, [])
 
   const rafraichirProfil = useCallback(async () => {
@@ -126,9 +142,8 @@ export function AdminAuthProvider({ children }) {
   const peut = useCallback(
     (code) => {
       if (!code) return false
-      if (estSuperAdmin) return true
-      const liste = utilisateur?.permissions ?? utilisateur?.codes_permissions ?? []
-      return Array.isArray(liste) && liste.includes(code)
+      if (codesPermissions(utilisateur).includes(code)) return true
+      return estSuperAdmin && PERMISSIONS_VERROUILLEES.includes(code)
     },
     [estSuperAdmin, utilisateur],
   )

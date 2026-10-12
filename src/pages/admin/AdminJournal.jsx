@@ -15,6 +15,7 @@ import {
   Users,
   X,
 } from 'lucide-react'
+import { useAdminAuth } from '../../admin/AdminAuthContext'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { extractBlobErrors, nomDepuisDisposition } from '../../lib/adminApi'
@@ -436,6 +437,8 @@ function MenuExportJournal({ disabled, loading, onExport, tf }) {
 
 export default function AdminJournal() {
   const { tf, locale } = useLanguage()
+  const { peut } = useAdminAuth()
+  const peutExporter = peut('journal.exporter')
   const toast = useToast()
   const [params, setParams] = useSearchParams()
   const [exportBusy, setExportBusy] = useState(false)
@@ -653,18 +656,20 @@ export default function AdminJournal() {
         title={tf('admin.journal.titre')}
         subtitle={tf('admin.journal.sousTitre')}
         actions={
-          <MenuExportJournal
-            disabled={!total}
-            loading={exportBusy}
-            onExport={exporter}
-            tf={tf}
-          />
+          peutExporter ? (
+            <MenuExportJournal
+              disabled={!total}
+              loading={exportBusy}
+              onExport={exporter}
+              tf={tf}
+            />
+          ) : null
         }
       />
       {exportErreur && (
         <div className="mb-4 flex flex-wrap items-center gap-3" role="alert">
           <p className="text-sm text-red-600">{exportErreur}</p>
-          {proposerCsv && (
+          {peutExporter && proposerCsv && (
             <Button variant="secondary" size="sm" onClick={() => exporter('csv')} loading={exportBusy}>
               <FileSpreadsheet className="h-4 w-4" aria-hidden />
               {tf('admin.journal.exporterCsv')}

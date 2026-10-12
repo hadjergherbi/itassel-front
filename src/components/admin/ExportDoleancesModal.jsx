@@ -40,7 +40,8 @@ function paramsExport({ natures, date_debut, date_fin, format, omettreNatures, g
 
 export default function ExportDoleancesModal({ open, onClose }) {
   const { tf } = useLanguage()
-  const { utilisateur, estSuperAdmin } = useAdminAuth()
+  const { utilisateur, peut } = useAdminAuth()
+  const vueGlobale = peut('tableau_de_bord.global')
   const toast = useToast()
   const service = nomService(utilisateur)
 
@@ -203,7 +204,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
       icon={<Download className="h-5 w-5" aria-hidden />}
       title={tf('admin.export.titre')}
       subtitle={
-        estSuperAdmin
+        vueGlobale
           ? tf('admin.export.introSuper')
           : tf('admin.export.introService', { service })
       }

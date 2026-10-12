@@ -733,8 +733,11 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
 export { ReaffecterDirectModal }
 
 export default function ReaffectationPanel({ dossier, onDone }) {
-  const { estSuperAdmin } = useAdminAuth()
+  const { peut } = useAdminAuth()
   const { tf } = useLanguage()
+  const peutDirecte = peut('reaffectations.directe')
+  const peutDemander = peut('reaffectations.demander')
+  const peutDecider = peut('reaffectations.decider')
   const [services, setServices] = useState([])
   const [modal, setModal] = useState(null)
 
@@ -753,14 +756,14 @@ export default function ReaffectationPanel({ dossier, onDone }) {
       <section className="rounded-[8px] border border-gray-200 bg-white p-5 shadow-sm">
         <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
           <h2 className="text-base font-bold text-gray-900">{tf('admin.reaffectation.titre')}</h2>
-          {estSuperAdmin && (
+          {peutDirecte && (
             <Button variant="secondary" size="sm" onClick={() => setModal('direct')}>
               <Users className="h-4 w-4" /> {tf('admin.reaffectation.reaffecter')}
             </Button>
           )}
         </div>
 
-        {estSuperAdmin ? (
+        {peutDirecte ? (
           <div className="space-y-3">
             <div>
               <p className="mb-0.5 text-xs text-gray-500">{tf('admin.reaffectation.serviceAffecte')}</p>
@@ -793,7 +796,7 @@ export default function ReaffectationPanel({ dossier, onDone }) {
           </div>
         )}
 
-        {!estSuperAdmin && !enAttente && (
+        {peutDemander && !peutDirecte && !enAttente && (
           <div className="mt-4 border-t border-gray-100 pt-4">
             <p className="mb-3 text-sm text-gray-600">{tf('admin.reaffectation.pasVotreService')}</p>
             <button
@@ -806,7 +809,7 @@ export default function ReaffectationPanel({ dossier, onDone }) {
           </div>
         )}
 
-        {!estSuperAdmin && enAttente && (
+        {peutDemander && !peutDirecte && enAttente && (
           <div className="mt-4 space-y-3 border-t border-gray-100 pt-4">
             <span className="inline-flex rounded-full bg-[#fff4e5] px-2.5 py-0.5 text-xs font-medium text-[#8a5a00]">
               {tf('admin.reaffectation.enAttente')}
@@ -828,6 +831,17 @@ export default function ReaffectationPanel({ dossier, onDone }) {
             >
               {tf('admin.reaffectation.annulerDemande')}
             </button>
+          </div>
+        )}
+
+        {peutDecider && enAttente && (
+          <div className="mt-4 flex flex-wrap gap-2 border-t border-gray-100 pt-4">
+            <Button size="sm" onClick={() => setModal('accepter')}>
+              {tf('admin.reaffectation.reaffecterAction')}
+            </Button>
+            <Button variant="secondary" size="sm" onClick={() => setModal('refuser')}>
+              {tf('admin.reaffectation.refuser')}
+            </Button>
           </div>
         )}
       </section>

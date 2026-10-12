@@ -147,7 +147,8 @@ function SelecteurPeriode({ valeur, onChange }) {
 
 export default function AdminDashboard() {
   const { tf } = useLanguage()
-  const { utilisateur, estSuperAdmin } = useAdminAuth()
+  const { utilisateur, peut } = useAdminAuth()
+  const vueGlobale = peut('tableau_de_bord.global')
   const [params, setParams] = useSearchParams()
   const periodeBrute = params.get('periode')
   const periode = PERIODES.some((p) => p.code === periodeBrute) ? periodeBrute : '6m'
@@ -200,7 +201,7 @@ export default function AdminDashboard() {
     )
   }
 
-  if (estSuperAdmin) {
+  if (vueGlobale) {
     return (
       <DashboardSuperAdmin
         data={data}
@@ -297,12 +298,16 @@ function DashboardSuperAdmin({ data, periode, onPeriode }) {
             </div>
           </div>
           <div className="flex gap-2">
-            <Link to="/admin/utilisateurs" className="text-sm text-institutional hover:underline">
-              {tf('admin.dashboard.utilisateurs')}
-            </Link>
-            <Link to="/admin/services" className="text-sm text-institutional hover:underline">
-              {tf('admin.dashboard.services')}
-            </Link>
+            {peut('utilisateurs.gerer') && (
+              <Link to="/admin/utilisateurs" className="text-sm text-institutional hover:underline">
+                {tf('admin.dashboard.utilisateurs')}
+              </Link>
+            )}
+            {peut('services.gerer') && (
+              <Link to="/admin/services" className="text-sm text-institutional hover:underline">
+                {tf('admin.dashboard.services')}
+              </Link>
+            )}
           </div>
         </Card>
       </div>
