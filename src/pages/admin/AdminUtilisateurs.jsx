@@ -20,8 +20,39 @@ import { FieldError, FieldLabel, SelectInput, TextInput } from '../../components
 import { useToast } from '../../components/ui/Toast'
 import { useLanguage } from '../../i18n/LanguageContext'
 import { libelleService } from '../../lib/libelles'
+import { servicePrincipal, servicesDe } from '../../lib/services'
+import SelecteurServices, { MAX_SERVICES } from '../../components/admin/SelecteurServices'
 
-const VIDE = { nom: '', prenom: '', email: '', role: 'admin_service', id_service: '' }
+const VIDE = {
+  nom: '',
+  prenom: '',
+  email: '',
+  role: 'admin_service',
+  ids_services: [],
+  id_service_principal: '',
+}
+
+function valeursDepuis(u) {
+  if (!u) return { ...VIDE, ids_services: [] }
+  const liste = servicesDe(u)
+  const principal = servicePrincipal(u)
+  return {
+    nom: u.nom ?? '',
+    prenom: u.prenom ?? '',
+    email: u.email ?? '',
+    role: u.role ?? 'admin_service',
+    ids_services: liste.map((s) => String(s.id_service)),
+    id_service_principal: principal?.id_service != null ? String(principal.id_service) : '',
+  }
+}
+
+function messageChampServices(errors) {
+  const textes = Object.entries(errors)
+    .filter(([cle]) => cle === 'ids_services' || cle.startsWith('ids_services.'))
+    .map(([, valeur]) => valeur)
+    .filter(Boolean)
+  return [...new Set(textes)].join(' ')
+}
 
 function idDe(u) {
   return u?.id_utilisateur ?? u?.id
@@ -77,17 +108,7 @@ export default function AdminUtilisateurs() {
 
   const ouvrir = (u) => {
     setForm(u || {})
-    setValues(
-      u
-        ? {
-            nom: u.nom ?? '',
-            prenom: u.prenom ?? '',
-            email: u.email ?? '',
-            role: u.role ?? 'admin_service',
-            id_service: u.service?.id_service ? String(u.service.id_service) : '',
-          }
-        : VIDE,
-    )
+    setValues(valeursDepuis(u))
     setErrors({})
   }
 
@@ -98,35 +119,46 @@ export default function AdminUtilisateurs() {
     if (!values.prenom.trim()) next.prenom = obligatoire
     if (!values.email.trim()) next.email = obligatoire
     if (!idDe(form) && !values.role) next.role = obligatoire
-    if (values.role !== 'super_admin' && !values.id_service) next.id_service = obligatoire
+    if (values.role !== 'super_admin') {
+      if (!values.ids_services.length) next.ids_services = tf('admin.utilisateurs.serviceRequis')
+      else if (values.ids_services.length > MAX_SERVICES) next.ids_services = tf('admin.utilisateurs.serviceMax')
+    }
     setErrors(next)
     if (Object.keys(next).length) return
+    const corps = {
+      nom: values.nom.trim(),
+      prenom: values.prenom.trim(),
+      email: values.email.trim(),
+    }
+    if (values.role !== 'super_admin') {
+      const ids = values.ids_services.map(Number)
+      corps.ids_services = ids
+      corps.id_service_principal = Number(values.id_service_principal || ids[0])
+    }
     setBusy(true)
     try {
       if (idDe(form)) {
-        await endpoints.modifierUtilisateur(idDe(form), {
-          nom: values.nom.trim(),
-          prenom: values.prenom.trim(),
-          email: values.email.trim(),
-          id_service: values.role === 'super_admin' ? null : Number(values.id_service),
-        })
+        await endpoints.modifierUtilisateur(idDe(form), corps)
         toast.show('success', tf('admin.utilisateurs.misAJour'))
       } else {
-        await endpoints.creerUtilisateur({
-          nom: values.nom.trim(),
-          prenom: values.prenom.trim(),
-          email: values.email.trim(),
-          role: values.role,
-          id_service: values.role === 'super_admin' ? null : Number(values.id_service),
-        })
+        await endpoints.creerUtilisateur({ ...corps, role: values.role })
         toast.show('success', tf('admin.utilisateurs.compteCree'))
       }
       setForm(null)
       reload()
     } catch (err) {
       const { message, fields } = extractErrors(err, undefined, lang)
-      setErrors(fields)
-      if (!Object.keys(fields).length) toast.show('error', message409(err.response?.data?.code, message, lang))
+      const status = err.response?.status
+      const texte = message409(err.response?.data?.code, message, lang)
+      const champs = { ...fields }
+      const aErreurService = Object.keys(champs).some(
+        (cle) => cle === 'ids_services' || cle.startsWith('ids_services.') || cle === 'id_service_principal',
+      )
+      if ((status === 409 || status === 422) && !aErreurService && texte) {
+        champs.ids_services = texte
+      }
+      setErrors(champs)
+      if (!Object.keys(champs).length) toast.show('error', texte)
     } finally {
       setBusy(false)
     }
@@ -349,7 +381,16 @@ export default function AdminUtilisateurs() {
                   id="u-role"
                   value={values.role}
                   disabled={edition}
-                  onChange={(e) => setValues({ ...values, role: e.target.value })}
+                  onChange={(e) => {
+                    const role = e.target.value
+                    setValues({
+                      ...values,
+                      role,
+                      ...(role === 'super_admin'
+                        ? { ids_services: [], id_service_principal: '' }
+                        : {}),
+                    })
+                  }}
                 >
                   {(roles.length ? roles : rolesFallback).map((r) => (
                     <option key={r.code ?? r.id_role} value={r.code}>
@@ -361,25 +402,25 @@ export default function AdminUtilisateurs() {
               {values.role === 'super_admin' ? (
                 <p className="text-sm text-gray-500">{tf('admin.utilisateurs.tousServices')}</p>
               ) : (
-                <div>
-                  <FieldLabel htmlFor="u-service" required>
-                    {tf('admin.monCompte.service')}
-                  </FieldLabel>
-                  <SelectInput
-                    id="u-service"
-                    value={values.id_service}
-                    onChange={(e) => setValues({ ...values, id_service: e.target.value })}
-                    error={errors.id_service}
-                  >
-                    <option value="">{tf('admin.utilisateurs.choisir')}</option>
-                    {services.map((s) => (
-                      <option key={s.id_service} value={s.id_service}>
-                        {libelleService(s.nom_service ?? s.nom, lang)}
-                      </option>
-                    ))}
-                  </SelectInput>
-                  <FieldError message={errors.id_service} />
-                </div>
+                <SelecteurServices
+                  services={services}
+                  ids={values.ids_services}
+                  principal={values.id_service_principal}
+                  erreurServices={messageChampServices(errors)}
+                  erreurPrincipal={errors.id_service_principal}
+                  onChange={(suite) => {
+                    setValues({ ...values, ...suite })
+                    setErrors((prev) => {
+                      const suivant = { ...prev }
+                      delete suivant.ids_services
+                      delete suivant.id_service_principal
+                      for (const cle of Object.keys(suivant)) {
+                        if (cle.startsWith('ids_services.')) delete suivant[cle]
+                      }
+                      return suivant
+                    })
+                  }}
+                />
               )}
               <div className="flex justify-end gap-2 pt-2">
                 <Button variant="secondary" onClick={() => setForm(null)}>
