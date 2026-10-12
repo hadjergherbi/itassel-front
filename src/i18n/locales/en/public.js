@@ -119,6 +119,8 @@ export default {
     duration: 'About 3 minutes',
     cancel: 'Cancel',
     continue: 'Review and continue',
+    patientez: 'Please wait…',
+    recharger: 'Reload the form',
     referentielsError: 'Unable to load the lists (type, capacity, area). Check your connection and try again.',
     submitFailed: 'Sending failed. Check your connection and try again.',
     langueInvalide: 'The submission language was not accepted. Please try again.',

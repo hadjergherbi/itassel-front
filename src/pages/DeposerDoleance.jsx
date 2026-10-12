@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { ArrowLeft, ArrowRight } from 'lucide-react'
 import Header from '../components/Header'
@@ -41,6 +41,9 @@ const emptyForm = {
   objet: '',
   description: '',
 }
+
+const DELAI_JETON_MS = 3200
+const AGE_JETON_MAX_MS = 100 * 60 * 1000
 
 const DOMAINE_SLUG_TO_SERVICE = {
   sport: 'Sport',
@@ -184,7 +187,21 @@ export default function DeposerDoleance() {
   const [submitError, setSubmitError] = useState('')
   const [antiSpam, setAntiSpam] = useState(false)
   const [jetonFormulaire, setJetonFormulaire] = useState('')
+  const [attenteJeton, setAttenteJeton] = useState(false)
+  const jetonDepuisRef = useRef(0)
+  const envoiRef = useRef(false)
   const [siteWeb, setSiteWeb] = useState('')
+
+  const memoriserJeton = useCallback((jeton) => {
+    setJetonFormulaire(jeton)
+    jetonDepuisRef.current = jeton ? Date.now() : 0
+    return jeton
+  }, [])
+
+  const chargerJeton = useCallback(async () => {
+    const res = await endpoints.jetonFormulaire()
+    return memoriserJeton(res.data?.jeton ?? '')
+  }, [memoriserJeton])
 
   useEffect(() => {
     let cancelled = false
@@ -230,25 +247,18 @@ export default function DeposerDoleance() {
     }
   }, [initialDomaine])
 
-  const chargerJeton = async () => {
-    const res = await endpoints.jetonFormulaire()
-    const jeton = res.data?.jeton ?? ''
-    setJetonFormulaire(jeton)
-    return jeton
-  }
-
   useEffect(() => {
     let cancelled = false
     endpoints
       .jetonFormulaire()
       .then((res) => {
-        if (!cancelled) setJetonFormulaire(res.data?.jeton ?? '')
+        if (!cancelled) memoriserJeton(res.data?.jeton ?? '')
       })
       .catch(() => {})
     return () => {
       cancelled = true
     }
-  }, [])
+  }, [memoriserJeton])
 
   const setValue = (name, value) => {
     setForm((prev) => ({ ...prev, [name]: value }))
@@ -330,7 +340,8 @@ export default function DeposerDoleance() {
 
   const handleSubmit = async (e) => {
     e.preventDefault()
-    if (isSubmitting || referentielsFailed) return
+    if (envoiRef.current || isSubmitting || referentielsFailed) return
+    envoiRef.current = true
     setSubmitError('')
     if (!validateAll()) return
 
@@ -355,12 +366,22 @@ export default function DeposerDoleance() {
     setAntiSpam(false)
     try {
       let jeton = jetonFormulaire
-      if (!jeton) {
+      const age = jetonDepuisRef.current ? Date.now() - jetonDepuisRef.current : Number.POSITIVE_INFINITY
+      if (!jeton || age >= AGE_JETON_MAX_MS) {
         try {
           jeton = await chargerJeton()
         } catch {
           jeton = ''
         }
+      }
+      const ageActuel = jetonDepuisRef.current ? Date.now() - jetonDepuisRef.current : 0
+      const reste = DELAI_JETON_MS - ageActuel
+      if (jeton && reste > 0) {
+        setAttenteJeton(true)
+        await new Promise((resolve) => {
+          window.setTimeout(resolve, reste)
+        })
+        setAttenteJeton(false)
       }
       formData.append('jeton_formulaire', jeton)
       formData.append('site_web', siteWeb)
@@ -405,10 +426,13 @@ export default function DeposerDoleance() {
             t.deposit.submitFailed,
           ),
         )
+        chargerJeton().catch(() => {})
       } else {
         setSubmitError(t.deposit.submitFailed)
       }
     } finally {
+      envoiRef.current = false
+      setAttenteJeton(false)
       setIsSubmitting(false)
     }
   }
@@ -451,7 +475,7 @@ export default function DeposerDoleance() {
                 }}
                 className="mt-2 font-semibold underline hover:no-underline"
               >
-                Recharger le formulaire
+                {t.deposit.recharger}
               </button>
             )}
           </div>
@@ -719,11 +743,11 @@ export default function DeposerDoleance() {
                   </button>
                   <button
                     type="submit"
-                    disabled={isSubmitting || referentielsLoading || referentielsFailed}
-                    aria-busy={isSubmitting}
+                    disabled={isSubmitting || attenteJeton || referentielsLoading || referentielsFailed}
+                    aria-busy={isSubmitting || attenteJeton}
                     className="inline-flex items-center justify-center gap-2 rounded-[8px] bg-action px-4 py-2.5 text-sm font-medium text-white transition hover:bg-[#008040] disabled:cursor-not-allowed disabled:opacity-60"
                   >
-                    {t.deposit.continue}
+                    {attenteJeton ? t.deposit.patientez : t.deposit.continue}
                     <Arrow className="h-4 w-4" aria-hidden />
                   </button>
                 </div>

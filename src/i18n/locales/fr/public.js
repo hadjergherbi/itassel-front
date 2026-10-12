@@ -157,6 +157,8 @@ export default {
     "duration": "Environ 3 minutes",
     "cancel": "Annuler",
     "continue": "Vérifier et continuer",
+    "patientez": "Patientez…",
+    "recharger": "Recharger le formulaire",
     "referentielsError": "Impossible de charger les listes (nature, qualité, domaine). Vérifiez votre connexion et réessayez.",
     "submitFailed": "L'envoi a échoué. Vérifiez votre connexion et réessayez.",
     "langueInvalide": "La langue du dépôt n'est pas acceptée. Réessayez.",
