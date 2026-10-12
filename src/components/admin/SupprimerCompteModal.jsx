@@ -84,7 +84,7 @@ export default function SupprimerCompteModal({ open, utilisateur, onClose, onDon
       const code = err.response?.data?.code
       setErreur(
         traduireMessageApi(
-          message409(code, extractErrors(err, undefined, lang).message),
+          message409(code, extractErrors(err, undefined, lang).message, lang),
           lang,
         ),
       )

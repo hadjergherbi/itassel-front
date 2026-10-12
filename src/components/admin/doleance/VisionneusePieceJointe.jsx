@@ -145,7 +145,7 @@ function btnOutil(actif) {
 }
 
 export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose }) {
-  const { tf, isRtl } = useLanguage()
+  const { tf, lang, isRtl } = useLanguage()
   const { peut } = useAdminAuth()
   const peutTelecharger = peut('pieces_jointes.telecharger')
   const piece = pieces[index]
@@ -201,7 +201,7 @@ export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose
             : status === 415
               ? tf('admin.piecesJointes.typeIndispo')
               : tf('admin.piecesJointes.reseau')
-        const { message: api } = await extractBlobErrors(err, fallback)
+        const { message: api } = await extractBlobErrors(err, fallback, lang)
         setMessage(api || fallback)
         setEtat(status === 404 ? 'introuvable' : status === 415 ? 'type' : 'reseau')
       }
@@ -211,7 +211,7 @@ export default function VisionneusePieceJointe({ pieces, index, onIndex, onClose
     return () => {
       ignore = true
     }
-  }, [piece, tf, essai])
+  }, [piece, tf, lang, essai])
 
   const aller = useCallback(
     (delta) => {

@@ -539,6 +539,7 @@ function ReaffecterDirectModal({ open, onClose, dossier, onDone }) {
             : message409(
                 err.response?.data?.code,
                 messageReaffectation(err, tf, message, lang),
+                lang,
               ),
         )
       }

@@ -4,6 +4,7 @@ import {
   formatDateHeure as formatDateHeureI18n,
   formatRelatif as formatRelatifI18n,
 } from '../i18n/format'
+import { translations } from '../i18n/translations'
 
 const CODES = [
   'nouvelle',
@@ -358,24 +359,9 @@ export function initiales(personne) {
   return ((p + n) || '?').toUpperCase()
 }
 
-export function message409(code, fallback) {
-  const map = {
-    demande_en_attente: 'Une demande de réaffectation est déjà en attente.',
-    dossier_conclu: "Ce dossier est conclu : l'opération n'est plus possible.",
-    utilisateur_affecte: 'Ce compte est encore responsable de dossiers ou d’un service.',
-    deja_acceptee: 'Cette demande a déjà été acceptée.',
-    deja_refusee: 'Cette demande a déjà été refusée.',
-    deja_annulee: 'Cette demande a déjà été annulée.',
-    sans_suite: 'Cette demande a été classée sans suite.',
-    etat_invalide: "L'état actuel ne permet pas cette action.",
-    complement_deja_repondu: 'Le citoyen a déjà répondu à cette demande.',
-    complement_deja_annule: 'Cette demande de complément a déjà été annulée.',
-    dossier_reaffecte: 'Ce dossier a été réaffecté à un autre service.',
-    deja_transmis: 'Cet email a déjà été transmis.',
-    dernier_super_admin: 'Impossible : c\'est le dernier Super administrateur actif.',
-    utilisateur_utilise: 'Ce compte a déjà été utilisé : désactivez-le plutôt que de le supprimer.',
-    dossiers_en_cours: 'Ce compte est responsable de dossiers en cours dans son service.',
-    parametre_utilise: 'Cette valeur est utilisée par des doléances : elle ne peut pas être supprimée.',
-  }
-  return map[code] || fallback
+export function message409(code, fallback, lang = 'fr') {
+  const table =
+    translations[lang]?.erreurs?.conflits ?? translations.fr?.erreurs?.conflits ?? {}
+  if (code && table[code]) return table[code]
+  return fallback || table.defaut || ''
 }

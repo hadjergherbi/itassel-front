@@ -16,7 +16,7 @@ const FLASH_CLES = {
 
 export default function AdminConnexion() {
   const { status, login } = useAdminAuth()
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const navigate = useNavigate()
   const location = useLocation()
 
@@ -79,7 +79,7 @@ export default function AdminConnexion() {
       } else if (code === 422) {
         setErreur(tf('admin.connexion.incorrect'))
       } else {
-        setErreur(extractErrors(err).message)
+        setErreur(extractErrors(err, undefined, lang).message)
       }
     } finally {
       setIsSubmitting(false)

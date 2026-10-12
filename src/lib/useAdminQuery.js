@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useLanguage } from '../i18n/LanguageContext'
 import adminApi, { extractErrors } from './adminApi'
 
 export default function useAdminQuery(url, { params, enabled = true, fallback, fetcher } = {}) {
+  const { lang, tf } = useLanguage()
   const [data, setData] = useState(null)
   const [loadState, setLoadState] = useState(enabled ? 'loading' : 'idle')
   const [erreur, setErreur] = useState('')
@@ -35,13 +37,13 @@ export default function useAdminQuery(url, { params, enabled = true, fallback, f
       })
       .catch((err) => {
         if (cancelled) return
-        setErreur(extractErrors(err, fallback || 'Impossible de charger les données.').message)
+        setErreur(extractErrors(err, fallback || tf('erreurs.chargementDonnees'), lang).message)
         setLoadState('error')
       })
     return () => {
       cancelled = true
     }
-  }, [url, paramsKey, enabled, reloadKey, fallback])
+  }, [url, paramsKey, enabled, reloadKey, fallback, lang, tf])
 
   return { data, setData, loadState, erreur, reload }
 }

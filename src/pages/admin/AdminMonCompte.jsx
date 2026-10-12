@@ -34,7 +34,7 @@ function ChampVerrouille({ id, label, value }) {
 
 export default function AdminMonCompte() {
   const { utilisateur, rafraichirProfil, estSuperAdmin } = useAdminAuth()
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const { formatDateHeure } = useFormat()
   const service = nomService(utilisateur)
   const role = utilisateur?.libelle_role || (estSuperAdmin ? tf('admin.layout.superAdmin') : tf('admin.layout.administrateur'))
@@ -68,7 +68,7 @@ export default function AdminMonCompte() {
       setSucces(true)
       rafraichirProfil().catch(() => {})
     } catch (err) {
-      const { message, fields } = extractErrors(err)
+      const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!fields.mot_de_passe_actuel && !fields.mot_de_passe && !fields.mot_de_passe_confirmation) {
         setErreur(message)

@@ -223,7 +223,7 @@ function ReferentielList({ type, titre, sousTitre }) {
         setErreurFormulaire(tf('admin.parametres.erreurInterdit'))
         toast.show('error', tf('admin.parametres.erreurInterdit'))
       } else {
-        const texte = message409(err.response?.data?.code, message)
+        const texte = message409(err.response?.data?.code, message, lang)
         setErreurFormulaire(texte)
         toast.show('error', texte)
       }
@@ -241,7 +241,7 @@ function ReferentielList({ type, titre, sousTitre }) {
       setConfirm(null)
       reload()
     } catch (err) {
-      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message))
+      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message, lang))
     } finally {
       setBusy(false)
     }
@@ -460,7 +460,7 @@ function StatutsTab() {
     } catch (err) {
       const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!Object.keys(fields).length) toast.show('error', message409(err.response?.data?.code, message))
+      if (!Object.keys(fields).length) toast.show('error', message409(err.response?.data?.code, message, lang))
     } finally {
       setBusy(false)
     }
@@ -606,7 +606,7 @@ function NotificationsTab() {
       toast.show('success', tf('admin.parametres.notificationsEnregistrees'))
       reload()
     } catch (err) {
-      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message))
+      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message, lang))
     } finally {
       setBusy(false)
     }

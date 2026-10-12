@@ -38,7 +38,7 @@ export default function AdminDoleanceDetail() {
   const peutDemanderComplementPerm = peut('complements.demander')
   const peutRepondre = peut('doleances.repondre')
   const peutNotes = peut('doleances.notes')
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const { formatDate } = useFormat()
 
   const [dossier, setDossier] = useState(null)
@@ -150,7 +150,7 @@ export default function AdminDoleanceDetail() {
       onDone('success', res.data?.message || tf('admin.detail.examineOk'))
     } catch (err) {
       const code = err.response?.data?.code
-      const { message } = extractErrors(err, tf('admin.detail.examineImpossible'))
+      const { message } = extractErrors(err, tf('admin.detail.examineImpossible'), lang)
       onDone(
         'error',
         code === 'etat_invalide'

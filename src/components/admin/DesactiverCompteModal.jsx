@@ -128,7 +128,7 @@ export default function DesactiverCompteModal({ open, utilisateur, onClose, onDo
     } catch (err) {
       setErreur(
         traduireMessageApi(
-          message409(err.response?.data?.code, extractErrors(err, undefined, lang).message),
+          message409(err.response?.data?.code, extractErrors(err, undefined, lang).message, lang),
           lang,
         ),
       )

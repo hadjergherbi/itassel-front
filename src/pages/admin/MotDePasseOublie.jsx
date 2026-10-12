@@ -13,7 +13,7 @@ const DELAI_RENVOI = 60
 
 export default function MotDePasseOublie() {
   const { status } = useAdminAuth()
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const location = useLocation()
   const titreSuccesRef = useRef(null)
 
@@ -59,7 +59,7 @@ export default function MotDePasseOublie() {
     } catch (err) {
       const code = err.response?.status
       if (code === 422) {
-        const { fields, message } = extractErrors(err)
+        const { fields, message } = extractErrors(err, undefined, lang)
         setErreurEmail(fields.email || message)
       } else if (code === 429) {
         setErreurGlobale(tf('admin.mdpOublie.tropTentatives'))

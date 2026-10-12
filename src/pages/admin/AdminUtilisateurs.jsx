@@ -126,7 +126,7 @@ export default function AdminUtilisateurs() {
     } catch (err) {
       const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!Object.keys(fields).length) toast.show('error', message409(err.response?.data?.code, message))
+      if (!Object.keys(fields).length) toast.show('error', message409(err.response?.data?.code, message, lang))
     } finally {
       setBusy(false)
     }
@@ -155,7 +155,7 @@ export default function AdminUtilisateurs() {
       setConfirm(null)
       reload()
     } catch (err) {
-      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message))
+      toast.show('error', message409(err.response?.data?.code, extractErrors(err, undefined, lang).message, lang))
     } finally {
       setBusy(false)
     }

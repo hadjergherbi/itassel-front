@@ -436,7 +436,7 @@ function MenuExportJournal({ disabled, loading, onExport, tf }) {
 }
 
 export default function AdminJournal() {
-  const { tf, locale } = useLanguage()
+  const { tf, lang, locale } = useLanguage()
   const { peut } = useAdminAuth()
   const peutExporter = peut('journal.exporter')
   const toast = useToast()
@@ -574,7 +574,7 @@ export default function AdminJournal() {
       a.remove()
       setTimeout(() => URL.revokeObjectURL(url), 1000)
     } catch (err) {
-      const { message, code } = await extractBlobErrors(err, tf('admin.journal.exportEchec'))
+      const { message, code } = await extractBlobErrors(err, tf('admin.journal.exportEchec'), lang)
       if (code === 'export_trop_volumineux') {
         toast.show('error', `${message} ${tf('admin.journal.proposerCsv')}`)
         setExportErreur(message)

@@ -21,7 +21,7 @@ function masquerEmail(email) {
 export default function DefinirMotDePasse() {
   const [params] = useSearchParams()
   const navigate = useNavigate()
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const jeton = params.get('jeton')?.trim() ?? ''
 
   const [etat, setEtat] = useState(jeton ? 'chargement' : 'invalide')
@@ -71,7 +71,7 @@ export default function DefinirMotDePasse() {
       })
       navigate('/admin/connexion', { replace: true, state: { flash: 'mdp_enregistre' } })
     } catch (err) {
-      const { message, fields } = extractErrors(err)
+      const { message, fields } = extractErrors(err, undefined, lang)
       setErrors(fields)
       if (!fields.mot_de_passe && !fields.mot_de_passe_confirmation) setErreur(message)
     } finally {

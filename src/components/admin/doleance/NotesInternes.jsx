@@ -236,7 +236,7 @@ function NoteItem({
 }
 
 export default function NotesInternes({ dossier, onRefresh, peutRediger = false }) {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const toast = useToast()
   const maintenant = useHorloge()
   const notes = useMemo(() => dossier.notes_internes ?? [], [dossier.notes_internes])
@@ -299,7 +299,7 @@ export default function NotesInternes({ dossier, onRefresh, peutRediger = false 
 
   const gererErreur = (err, fallback) => {
     const status = err.response?.status
-    const { message, fields } = extractErrors(err, fallback)
+    const { message, fields } = extractErrors(err, fallback, lang)
     if (status === 409) {
       setBanniere(tf('admin.notes.delaiDepasse'))
       setEdition(null)
@@ -386,7 +386,7 @@ export default function NotesInternes({ dossier, onRefresh, peutRediger = false 
       onRefresh?.()
     } catch (err) {
       const status = err.response?.status
-      const { message } = extractErrors(err, tf('admin.notes.epinglageImpossible'))
+      const { message } = extractErrors(err, tf('admin.notes.epinglageImpossible'), lang)
       setBanniere(status === 422 ? message || tf('admin.notes.epinglageImpossible') : message)
     } finally {
       setBusyId(null)

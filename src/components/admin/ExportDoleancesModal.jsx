@@ -39,7 +39,7 @@ function paramsExport({ natures, date_debut, date_fin, format, omettreNatures, g
 }
 
 export default function ExportDoleancesModal({ open, onClose }) {
-  const { tf } = useLanguage()
+  const { tf, lang } = useLanguage()
   const { utilisateur, peut } = useAdminAuth()
   const vueGlobale = peut('tableau_de_bord.global')
   const toast = useToast()
@@ -127,7 +127,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
           }
         })
         .catch((err) => {
-          const { message, fields } = extractErrors(err, tf('admin.export.apercuImpossible'))
+          const { message, fields } = extractErrors(err, tf('admin.export.apercuImpossible'), lang)
           setErreurApi(message)
           if (fields.date_debut || fields.date_fin) {
             setErreurPeriode(fields.date_debut || fields.date_fin || message)
@@ -136,7 +136,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
         .finally(() => setApercuBusy(false))
     }, 300)
     return () => clearTimeout(timer)
-  }, [open, dateDebut, dateFin, selection, cataloguePret, validationPeriode, tf])
+  }, [open, dateDebut, dateFin, selection, cataloguePret, validationPeriode, tf, lang])
 
   const aucuneNature = selection.length === 0
   const periodeInvalide = Boolean(validationPeriode)
@@ -182,7 +182,7 @@ export default function ExportDoleancesModal({ open, onClose }) {
       toast.show('success', tf('admin.export.telecharge', { nom }))
       onClose()
     } catch (err) {
-      const { message, fields } = await extractBlobErrors(err, tf('admin.export.echec'))
+      const { message, fields } = await extractBlobErrors(err, tf('admin.export.echec'), lang)
       setErreurApi(message)
       if (fields.date_debut || fields.date_fin) {
         setErreurPeriode(fields.date_debut || fields.date_fin || message)
