@@ -20,6 +20,7 @@ import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { extractBlobErrors, nomDepuisDisposition } from '../../lib/adminApi'
 import { formatDate, nomComplet, statutKey } from '../../lib/statuts'
+import { formaterListeServices, libelleServices } from '../../lib/services'
 import { useLanguage } from '../../i18n/LanguageContext'
 import { useToast } from '../../components/ui/Toast'
 import PageHeader from '../../components/ui/PageHeader'
@@ -150,7 +151,61 @@ function LienCible({ cible, onNavigate }) {
   )
 }
 
+function detailObjet(detail) {
+  if (detail && typeof detail === 'object') return detail
+  if (typeof detail !== 'string') return null
+  const texte = detail.trim()
+  if (!texte.startsWith('{') && !texte.startsWith('[')) return null
+  try {
+    const json = JSON.parse(texte)
+    return json && typeof json === 'object' ? json : null
+  } catch {
+    return null
+  }
+}
+
+function listeDepuis(source, cles) {
+  if (!source || typeof source !== 'object' || Array.isArray(source)) return null
+  for (const cle of cles) {
+    const valeur = source[cle]
+    if (Array.isArray(valeur)) return valeur
+    if (valeur && typeof valeur === 'object' && Array.isArray(valeur.services)) return valeur.services
+  }
+  return null
+}
+
+/** Ancienne et nouvelle listes de services journalisées lors d'une modification de compte. */
+function listesServicesJournal(entree) {
+  const detail = detailObjet(entree?.detail)
+  const sources = [entree, detail, entree?.changements, detail?.changements].filter(
+    (source) => source && typeof source === 'object' && !Array.isArray(source),
+  )
+  for (const source of sources) {
+    const groupe = source.services && !Array.isArray(source.services) ? source.services : null
+    const avant = listeDepuis(source, ['services_avant', 'servicesAvant', 'avant'])
+      ?? listeDepuis(groupe, ['avant', 'ancien', 'anciens'])
+    const apres = listeDepuis(source, ['services_apres', 'servicesApres', 'apres'])
+      ?? listeDepuis(groupe, ['apres', 'nouveau', 'nouveaux'])
+    if ((avant && avant.length) || (apres && apres.length)) {
+      return { avant: avant ?? [], apres: apres ?? [] }
+    }
+  }
+  return null
+}
+
+function texteDetail(entree) {
+  const brut = entree.detail_lisible ?? entree.detail
+  if (brut == null || typeof brut === 'object') return ''
+  const texte = String(brut)
+  return detailObjet(texte) ? '' : texte
+}
+
 function DetailCell({ r }) {
+  const { tf, lang } = useLanguage()
+  const listes = listesServicesJournal(r)
+  const libelleAvant = listes ? formaterListeServices(listes.avant, lang) : ''
+  const libelleApres = listes ? formaterListeServices(listes.apres, lang) : ''
+  const aucun = tf('admin.journal.aucunService')
   if (estChangementStatut(r)) {
     const avant = r.statut_avant ?? r.detail?.statut_avant
     const apres = r.statut_apres ?? r.detail?.statut_apres
@@ -169,22 +224,32 @@ function DetailCell({ r }) {
       <span className="text-gray-400 line-through">{r.detail_lisible || r.detail || r.cible?.libelle || '—'}</span>
     )
   }
+  const texte = texteDetail(r)
   return (
-    <span className="text-gray-600">
-      {r.detail_lisible || r.detail || ''}
-      {r.cible?.lien && (
-        <>
-          {r.detail_lisible || r.detail ? ' ' : ''}
-          <LienCible cible={r.cible} />
-        </>
+    <span className="inline-flex flex-col gap-1 text-gray-600">
+      {(texte || !listes) && <span>{texte}</span>}
+      {listes && (
+        <span
+          className="inline-flex flex-wrap items-center gap-1.5"
+          aria-label={tf('admin.journal.servicesModifies', {
+            avant: libelleAvant || aucun,
+            apres: libelleApres || aucun,
+          })}
+        >
+          <span>{libelleAvant || aucun}</span>
+          <ArrowRight className="h-3.5 w-3.5 text-gray-400 rtl:-scale-x-100" aria-hidden />
+          <span>{libelleApres || aucun}</span>
+        </span>
       )}
+      {r.cible?.lien && <LienCible cible={r.cible} />}
     </span>
   )
 }
 
 function CelluleUtilisateur({ r }) {
+  const { lang } = useLanguage()
   if (r.utilisateur) {
-    const role = [r.utilisateur.libelle_role, r.utilisateur.service?.nom_service ?? r.utilisateur.service]
+    const role = [r.utilisateur.libelle_role, libelleServices(r.utilisateur, lang)]
       .filter(Boolean)
       .join(' · ')
     return (

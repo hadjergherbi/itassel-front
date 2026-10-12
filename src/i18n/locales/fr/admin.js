@@ -896,6 +896,8 @@ export default {
     erreur: 'Impossible de charger le journal.',
     erreurLigne: 'Impossible de charger le détail.',
     retry: 'Réessayer',
+    aucunService: 'Aucun service',
+    servicesModifies: 'Services du compte : {avant}, puis {apres}',
   },
   roles: {
     titre: 'Gestion des rôles',

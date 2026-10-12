@@ -13,6 +13,9 @@ export function servicesDe(utilisateur) {
   if (unique && typeof unique === 'object' && unique.id_service != null) {
     return [{ ...unique, principal: true }]
   }
+  if (typeof unique === 'string' && unique.trim()) {
+    return [{ nom_service: unique.trim(), principal: true }]
+  }
   return []
 }
 
@@ -45,4 +48,27 @@ export function libelleServices(utilisateur, lang, max = 2) {
   if (!noms.length) return ''
   if (noms.length <= max) return noms.join(', ')
   return `${noms.slice(0, max).join(', ')} +${noms.length - max}`
+}
+
+/**
+ * Liste journalisée (objets service, noms ou identifiants) en libellés traduits,
+ * service principal en premier.
+ */
+export function formaterListeServices(liste, lang) {
+  if (!Array.isArray(liste) || !liste.length) return ''
+  const services = liste
+    .map((service, index) => {
+      if (typeof service === 'string' && service.trim()) {
+        return { id_service: `nom-${index}`, nom_service: service.trim() }
+      }
+      if (typeof service === 'number') {
+        return { id_service: service, nom_service: String(service) }
+      }
+      if (service && typeof service === 'object') {
+        return service.id_service != null ? service : { ...service, id_service: `nom-${index}` }
+      }
+      return null
+    })
+    .filter((service) => service && (service.nom_service || service.nom || service.id_service != null))
+  return libelleServices({ services }, lang, services.length || 1)
 }

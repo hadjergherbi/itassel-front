@@ -896,6 +896,8 @@ export default {
     erreur: 'تعذّر تحميل السجل.',
     erreurLigne: 'تعذّر تحميل التفصيل.',
     retry: 'إعادة المحاولة',
+    aucunService: 'بلا مصلحة',
+    servicesModifies: 'مصالح الحساب: {avant}، ثم {apres}',
   },
   roles: {
     titre: 'إدارة الأدوار',

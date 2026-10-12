@@ -896,6 +896,8 @@ export default {
     erreur: 'Unable to load the log.',
     erreurLigne: 'Unable to load the details.',
     retry: 'Try again',
+    aucunService: 'No service',
+    servicesModifies: 'Account services: {avant}, then {apres}',
   },
   roles: {
     titre: 'Role management',
