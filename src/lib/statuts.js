@@ -28,6 +28,8 @@ const ALIAS = {
   hors_competence: 'hors_competence',
   cloturee: 'cloturee',
   unfounded: 'non_fondee',
+  non_fondee: 'non_fondee',
+  non_retenue: 'non_retenue',
   duplicate: 'double',
   newly_received: 'nouvelle',
   new: 'nouvelle',
@@ -81,6 +83,7 @@ export const ISSUES = [
   {
     code: 'ANSWERED',
     alias: 'answered',
+    aliases: ['answered', 'reponse_apportee'],
     libelle: 'Réponse apportée',
     definition: "Demande d'information ou suggestion à laquelle le service a répondu.",
     natures: ['demande_information', 'suggestion'],
@@ -99,6 +102,7 @@ export const ISSUES = [
   {
     code: 'UNFOUNDED',
     alias: 'non_fondee',
+    aliases: ['non_fondee', 'non_retenue'],
     libelle: 'Non fondée',
     definition: "Réclamation non retenue après examen.",
     natures: ['reclamation'],
@@ -162,9 +166,33 @@ export function estIssueFinale(code) {
   return Boolean(STATUT_META[key]?.final)
 }
 
-export const STATUTS_FINAUX = ['resolue', 'answered', 'cloturee', 'hors_competence', 'non_fondee', 'double']
+export const STATUTS_FINAUX = [
+  'resolue',
+  'answered',
+  'reponse_apportee',
+  'cloturee',
+  'hors_competence',
+  'non_fondee',
+  'non_retenue',
+  'double',
+]
 
-export const CODES_CONCLUSION = ['resolue', 'answered', 'hors_competence', 'cloturee', 'non_fondee', 'double']
+export const CODES_CONCLUSION = [
+  'resolue',
+  'answered',
+  'reponse_apportee',
+  'hors_competence',
+  'cloturee',
+  'non_fondee',
+  'non_retenue',
+  'double',
+]
+
+/** Codes reconnus pour une issue (alias principal + codes back / legacy). */
+export function aliasesIssue(issue) {
+  if (Array.isArray(issue?.aliases) && issue.aliases.length) return issue.aliases
+  return issue?.alias ? [issue.alias] : []
+}
 
 const NATURE_CODES = {
   réclamation: 'reclamation',
@@ -197,9 +225,11 @@ export const COULEURS_STATUT = {
   information_demandee: { bar: 'bg-info-demandee', dot: 'bg-info-demandee' },
   resolue: { bar: 'bg-resolue', dot: 'bg-resolue' },
   answered: { bar: 'bg-resolue', dot: 'bg-resolue' },
+  reponse_apportee: { bar: 'bg-resolue', dot: 'bg-resolue' },
   cloturee: { bar: 'bg-hors-competence', dot: 'bg-hors-competence' },
   hors_competence: { bar: 'bg-hors-competence', dot: 'bg-hors-competence' },
   non_fondee: { bar: 'bg-non-fondee', dot: 'bg-non-fondee' },
+  non_retenue: { bar: 'bg-hors-competence', dot: 'bg-hors-competence' },
   double: { bar: 'bg-double', dot: 'bg-double' },
   a_reclasser: { bar: 'bg-reclasser', dot: 'bg-reclasser' },
   default: { bar: 'bg-gray-400', dot: 'bg-gray-400' },

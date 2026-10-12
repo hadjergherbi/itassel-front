@@ -1,4 +1,4 @@
-import { ISSUES, LEGACY_MAPPING, libelleStatut, statutKey } from '../../lib/statuts'
+import { ISSUES, LEGACY_MAPPING, aliasesIssue, libelleStatut, statutKey } from '../../lib/statuts'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import PageHeader from '../../components/ui/PageHeader'
@@ -43,9 +43,12 @@ export default function AdminIssues() {
   const listeStatuts = Array.isArray(statuts) ? statuts : []
 
   const messageCitoyen = (issue) => {
-    const found = listeStatuts.find(
-      (s) => statutKey(s) === issue.alias || String(s.code ?? '').toLowerCase() === issue.alias,
-    )
+    const aliases = aliasesIssue(issue)
+    const found = listeStatuts.find((s) => {
+      const key = statutKey(s)
+      const code = String(s.code ?? '').toLowerCase()
+      return aliases.includes(key) || aliases.includes(code)
+    })
     if (found?.message_citoyen) return found.message_citoyen
     return issueChamp(tf, issue.alias, 'messageCitoyen', issue.message_citoyen)
   }

@@ -10,12 +10,7 @@ import {
   TextInput,
 } from '../FormFields'
 import adminApi, { extractErrors } from '../../lib/adminApi'
-import {
-  CODES_CONCLUSION,
-  issuesAutorisees,
-  natureCode,
-  statutKey,
-} from '../../lib/statuts'
+import { CODES_CONCLUSION, statutKey } from '../../lib/statuts'
 import { useLanguage } from '../../i18n/LanguageContext'
 import { emailSuffix } from './doleance/helpers'
 import Modal from './Modal'
@@ -24,6 +19,13 @@ import ModeleMessageSelect from './ModeleMessageSelect'
 
 const QUESTION_MAX = 1000
 const PIECE_MAX = 200
+
+function premiereErreur(errors, ...cles) {
+  for (const cle of cles) {
+    if (errors?.[cle]) return errors[cle]
+  }
+  return ''
+}
 
 export default function ChangerStatutModal({
   open,
@@ -58,18 +60,15 @@ export default function ChangerStatutModal({
   const actuel = dossier?.statut
   const actuelKey = statutKey(actuel)
   const complementAExaminer = Boolean(dossier?.complement_a_examiner)
-  const nature = natureCode(dossier?.nature)
-  const issuesOk = useMemo(() => new Set(issuesAutorisees(nature).map((i) => i.alias)), [nature])
 
   const options = useMemo(
     () =>
       transitions.filter((s) => {
         const key = statutKey(s)
         if (actuelKey === 'information_demandee' && key === 'en_cours') return false
-        if (CODES_CONCLUSION.includes(key) && issuesOk.size && !issuesOk.has(key)) return false
         return true
       }),
-    [transitions, issuesOk, actuelKey],
+    [transitions, actuelKey],
   )
 
   const choisi = useMemo(
@@ -82,6 +81,14 @@ export default function ChangerStatutModal({
   const estDouble = choisiKey === 'double'
   const estHorsCompetence = choisiKey === 'hors_competence'
   const estReponseTexte = estConclusion && !estHorsCompetence && !estDouble
+  const erreurMessage = premiereErreur(errors, 'message')
+  const erreurService = premiereErreur(errors, 'service', 'organisme_competent', 'id_service', 'service_cible')
+  const erreurReference = premiereErreur(
+    errors,
+    'reference',
+    'reference_initiale',
+    'reference_doublon',
+  )
 
   const notifier = estInfo ? true : notifierDemandeur
 
@@ -395,10 +402,13 @@ export default function ChangerStatutModal({
               rows={4}
               className="min-h-[100px]"
               value={message}
-              onChange={(e) => setMessage(e.target.value)}
-              error={errors.message}
+              onChange={(e) => {
+                setMessage(e.target.value)
+                if (errors.message) setErrors((prev) => ({ ...prev, message: '' }))
+              }}
+              error={erreurMessage}
             />
-            <FieldError message={errors.message} />
+            <FieldError message={erreurMessage} />
           </div>
         )}
 
@@ -413,19 +423,37 @@ export default function ChangerStatutModal({
                 rows={3}
                 className="min-h-[90px]"
                 value={justification}
-                onChange={(e) => setJustification(e.target.value)}
-                error={errors.justification}
+                onChange={(e) => {
+                  setJustification(e.target.value)
+                  if (errors.justification || errors.message) {
+                    setErrors((prev) => ({ ...prev, justification: '', message: '' }))
+                  }
+                }}
+                error={errors.justification || erreurMessage}
               />
-              <FieldError message={errors.justification} />
+              <FieldError message={errors.justification || erreurMessage} />
             </div>
             <div>
               <FieldLabel htmlFor="statut-organisme">{tf('admin.changerStatut.organisme')}</FieldLabel>
               <TextInput
                 id="statut-organisme"
                 value={organisme}
-                onChange={(e) => setOrganisme(e.target.value)}
+                onChange={(e) => {
+                  setOrganisme(e.target.value)
+                  if (erreurService) {
+                    setErrors((prev) => ({
+                      ...prev,
+                      service: '',
+                      organisme_competent: '',
+                      id_service: '',
+                      service_cible: '',
+                    }))
+                  }
+                }}
                 placeholder={tf('admin.changerStatut.organismePlaceholder')}
+                error={erreurService}
               />
+              <FieldError message={erreurService} />
             </div>
           </div>
         )}
@@ -439,11 +467,21 @@ export default function ChangerStatutModal({
               id="ref-initiale"
               dir="ltr"
               value={referenceInitiale}
-              onChange={(e) => setReferenceInitiale(e.target.value)}
+              onChange={(e) => {
+                setReferenceInitiale(e.target.value)
+                if (erreurReference) {
+                  setErrors((prev) => ({
+                    ...prev,
+                    reference: '',
+                    reference_initiale: '',
+                    reference_doublon: '',
+                  }))
+                }
+              }}
               placeholder="ITS-2026-004821"
-              error={errors.reference_initiale}
+              error={erreurReference}
             />
-            <FieldError message={errors.reference_initiale} />
+            <FieldError message={erreurReference} />
           </div>
         )}
 
