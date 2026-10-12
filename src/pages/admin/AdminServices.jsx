@@ -4,7 +4,8 @@ import { Pencil, Plus, Trash2 } from 'lucide-react'
 import useAdminQuery from '../../lib/useAdminQuery'
 import { endpoints } from '../../lib/endpoints'
 import { extractErrors } from '../../lib/adminApi'
-import { nomComplet } from '../../lib/statuts'
+import { message409, nomComplet } from '../../lib/statuts'
+import { servicesDe } from '../../lib/services'
 import PageHeader from '../../components/ui/PageHeader'
 import Button from '../../components/ui/Button'
 import AlertBanner from '../../components/ui/AlertBanner'
@@ -37,6 +38,7 @@ export default function AdminServices() {
   const [designation, setDesignation] = useState(null)
   const [idResp, setIdResp] = useState('')
   const [candidats, setCandidats] = useState([])
+  const [candidatsPrets, setCandidatsPrets] = useState(false)
   const [busy, setBusy] = useState(false)
   const [errors, setErrors] = useState({})
   const [modalService, setModalService] = useState(null)
@@ -46,9 +48,11 @@ export default function AdminServices() {
   useEffect(() => {
     if (!designation) {
       setCandidats([])
+      setCandidatsPrets(false)
       return undefined
     }
     let cancelled = false
+    setCandidatsPrets(false)
     endpoints
       .responsablesPossibles(designation.id_service)
       .then((res) => {
@@ -56,6 +60,9 @@ export default function AdminServices() {
       })
       .catch(() => {
         if (!cancelled) setCandidats([])
+      })
+      .finally(() => {
+        if (!cancelled) setCandidatsPrets(true)
       })
     return () => {
       cancelled = true
@@ -74,9 +81,9 @@ export default function AdminServices() {
       setDesignation(null)
       reload()
     } catch (err) {
-      const { message, fields } = extractErrors(err, undefined, lang)
+      const { message, fields, code } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!Object.keys(fields).length) toast.show('error', message)
+      if (!Object.keys(fields).length) toast.show('error', message409(code, message, lang))
     } finally {
       setBusy(false)
     }
@@ -99,9 +106,9 @@ export default function AdminServices() {
       setModalService(null)
       reload()
     } catch (err) {
-      const { message, fields } = extractErrors(err, undefined, lang)
+      const { message, fields, code } = extractErrors(err, undefined, lang)
       setErrors(fields)
-      if (!Object.keys(fields).length) toast.show('error', message)
+      if (!Object.keys(fields).length) toast.show('error', message409(code, message, lang))
     } finally {
       setBusy(false)
     }
@@ -117,8 +124,8 @@ export default function AdminServices() {
       setASupprimer(null)
       reload()
     } catch (err) {
-      const { message } = extractErrors(err, undefined, lang)
-      toast.show('error', message)
+      const { message, code } = extractErrors(err, undefined, lang)
+      toast.show('error', message409(code, message, lang))
       setASupprimer(null)
       reload()
     } finally {
@@ -128,8 +135,36 @@ export default function AdminServices() {
 
   const nomDu = (s) => libelleService(s?.nom_service ?? s?.nom, lang) || (s?.nom_service ?? s?.nom ?? '')
 
+  const nbAdministrateurs = (s) => {
+    if (Array.isArray(s?.administrateurs)) return s.administrateurs.length
+    const valeur = s?.nb_administrateurs ?? s?.administrateurs_count ?? s?.utilisateurs_count
+    if (valeur == null || valeur === '') return null
+    const n = Number(valeur)
+    return Number.isFinite(n) ? n : null
+  }
+
+  const rattacheAuService = (utilisateur, idService) => {
+    const connaitLaListe = Array.isArray(utilisateur?.services)
+      || (utilisateur?.service && typeof utilisateur.service === 'object')
+    if (!connaitLaListe) return true
+    return servicesDe(utilisateur).some((s) => String(s.id_service) === String(idService))
+  }
+
+  const eligibles = designation
+    ? candidats.filter((u) => rattacheAuService(u, designation.id_service))
+    : []
+
   const colonnes = [
     { id: 'nom', header: tf('admin.monCompte.service'), cell: (s) => nomDu(s) },
+    {
+      id: 'admins',
+      header: tf('admin.services.colAdministrateurs'),
+      className: 'font-mono',
+      cell: (s) => {
+        const n = nbAdministrateurs(s)
+        return n == null ? '—' : n
+      },
+    },
     {
       id: 'resp',
       header: tf('admin.services.colResponsable'),
@@ -274,13 +309,17 @@ export default function AdminServices() {
                   error={errors.id_responsable}
                 >
                   <option value="">{tf('admin.services.aucunResponsable')}</option>
-                  {candidats.map((u) => (
+                  {eligibles.map((u) => (
                     <option key={u.id_utilisateur} value={u.id_utilisateur}>
                       {nomComplet(u)}
                     </option>
                   ))}
                 </SelectInput>
-                <p className="mt-1.5 text-xs text-gray-500">{tf('admin.services.aideResponsable')}</p>
+                <p className="mt-1.5 text-xs text-gray-500">
+                  {candidatsPrets && eligibles.length === 0
+                    ? tf('admin.services.aucunAdminEligible')
+                    : tf('admin.services.aideResponsable')}
+                </p>
                 <FieldError message={errors.id_responsable} />
               </div>
               <div className="flex justify-end gap-2">

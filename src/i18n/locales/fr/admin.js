@@ -1116,6 +1116,7 @@ export default {
     renommer: 'Renommer',
     supprimer: 'Supprimer',
     vide: 'Aucun service.',
+    colAdministrateurs: 'Administrateurs',
     colResponsable: 'Responsable',
     colATraiter: 'À traiter',
     colActions: 'Actions',
@@ -1128,7 +1129,8 @@ export default {
     designerTitre: 'Désigner un responsable',
     serviceLabel: 'Service {nom}',
     aideResponsable:
-      'Seuls les utilisateurs actifs rattachés au service peuvent être désignés, jamais un autre service.',
+      'Seuls les administrateurs actifs dont ce service fait partie des services rattachés peuvent être désignés.',
+    aucunAdminEligible: 'Aucun administrateur n’est rattaché à ce service.',
     modifierTitre: 'Modifier le service',
     nomChamp: 'Nom du service',
     nomRequis: 'Indiquez le nom du service.',

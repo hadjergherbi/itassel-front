@@ -1116,6 +1116,7 @@ export default {
     renommer: 'Rename',
     supprimer: 'Delete',
     vide: 'No services.',
+    colAdministrateurs: 'Administrators',
     colResponsable: 'Officer',
     colATraiter: 'To process',
     colActions: 'Actions',
@@ -1127,7 +1128,8 @@ export default {
     designerTitre: 'Assign an officer',
     serviceLabel: 'Service {nom}',
     aideResponsable:
-      'Only active users linked to the service can be assigned, never another service.',
+      'Only active administrators who include this service among their linked services can be assigned.',
+    aucunAdminEligible: 'No administrator is linked to this service.',
     modifierTitre: 'Edit service',
     nomChamp: 'Service name',
     nomRequis: 'Enter the service name.',
